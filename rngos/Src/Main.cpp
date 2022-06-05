@@ -325,13 +325,14 @@ public:
 		}
 
 		// PUSH
-		case 0b11'11'11'11: // PUSH Mem | INC 16 bit Reg/Mem
+		case 0b11'11'11'11: // PUSH Mem | INC 16 bit Reg/Mem | DEC 16 bit Reg/Mem
 		{
 			ModRM modrm = std::bit_cast<ModRM>(memory[EIP()]);
 			++IP;
 
-			if (modrm.reg == 0b000)
+			switch (modrm.reg)
 			{
+			case 0b000: // INC 16 bit Reg/Mem
 				switch (modrm.mod)
 				{
 				case 0b11: // Reg
@@ -344,15 +345,27 @@ public:
 					break;
 				}
 				}
-			}
-			else if (modrm.reg != 0b110 || modrm.mod == 0b11)
-			{
+				break;
+			case 0b001: // DEC 16 bit Reg/Mem
+				switch (modrm.mod)
+				{
+				case 0b11: // Reg
+					setReg16Bit(modrm.rm, sub16Bit(reg16Bit(modrm.rm), 1));
+					break;
+				default: // Mem
+				{
+					std::uint32_t ra = realAddress(modrm, so);
+					write16Bit(ra, sub16Bit(read16Bit(ra), 1));
+					break;
+				}
+				}
+				break;
+			case 0b110: // PUSH Mem
+				push16Bit(read16Bit(realAddress(modrm, so)));
+				break;
+			default:
 				interrupt(s_InvalidInstruction);
 				return;
-			}
-			else
-			{
-				push16Bit(read16Bit(realAddress(modrm, so)));
 			}
 			break;
 		}
@@ -994,28 +1007,44 @@ public:
 		}
 
 		// INC
-		case 0b11'11'11'10: // INC 8 bit Reg/Mem
+		case 0b11'11'11'10: // INC 8 bit Reg/Mem | DEC 8 bit Reg/Mem
 		{
 			ModRM modrm = std::bit_cast<ModRM>(memory[EIP()]);
 			++IP;
 
-			if (modrm.reg != 0)
+			switch (modrm.reg)
 			{
+			case 0b000: // INC 8 bit Reg/Mem
+				switch (modrm.mod)
+				{
+				case 0b11: // Reg
+					setReg8Bit(modrm.rm, add8Bit(reg8Bit(modrm.rm), 1));
+					break;
+				default: // Mem
+				{
+					std::uint32_t ra = realAddress(modrm, so);
+					write8Bit(ra, add8Bit(read8Bit(ra), 1));
+					break;
+				}
+				}
+				break;
+			case 0b001: // DEC 8 bit Reg/Mem
+				switch (modrm.mod)
+				{
+				case 0b11: // Reg
+					setReg8Bit(modrm.rm, sub8Bit(reg8Bit(modrm.rm), 1));
+					break;
+				default: // Mem
+				{
+					std::uint32_t ra = realAddress(modrm, so);
+					write8Bit(ra, sub8Bit(read8Bit(ra), 1));
+					break;
+				}
+				}
+				break;
+			default:
 				interrupt(s_InvalidInstruction);
 				return;
-			}
-
-			switch (modrm.mod)
-			{
-			case 0b11: // Reg
-				setReg8Bit(modrm.rm, add8Bit(reg8Bit(modrm.rm), 1));
-				break;
-			default: // Mem
-			{
-				std::uint32_t ra = realAddress(modrm, so);
-				write8Bit(ra, add8Bit(read8Bit(ra), 1));
-				break;
-			}
 			}
 			break;
 		}
@@ -1107,6 +1136,132 @@ public:
 				break;
 			}
 			}
+			break;
+		}
+		case 0b00'10'11'00: // SUB 8 bit Imm from AL
+		{
+			std::uint8_t imm = memory[EIP()];
+			++IP;
+
+			AX = sub8Bit(AL(), imm);
+			break;
+		}
+		case 0b00'10'11'01: // SUB 16 bit Imm from AX
+		{
+			std::uint8_t imm = memory[EIP()] << 8;
+			++IP;
+			imm |= memory[EIP()];
+
+			AX = sub16Bit(AX, imm);
+			break;
+		}
+
+		// SBB
+		case 0b00'01'10'00: // SBB 8 bit Reg from Reg/Mem
+		{
+			ModRM modrm = std::bit_cast<ModRM>(memory[EIP()]);
+			++IP;
+
+			switch (modrm.mod)
+			{
+			case 0b11: // Reg from Reg
+				setReg8Bit(modrm.rm, sbb8Bit(reg8Bit(modrm.rm), reg8Bit(modrm.reg)));
+				break;
+			default: // Reg from Mem
+			{
+				std::uint32_t ra = realAddress(modrm, so);
+				write8Bit(ra, sbb8Bit(read8Bit(ra), reg8Bit(modrm.reg)));
+				break;
+			}
+			}
+			break;
+		}
+		case 0b00'01'10'01: // SBB 16 bit Reg from Reg/Mem
+		{
+			ModRM modrm = std::bit_cast<ModRM>(memory[EIP()]);
+			++IP;
+
+			switch (modrm.mod)
+			{
+			case 0b11: // Reg from Reg
+				setReg16Bit(modrm.rm, sbb16Bit(reg16Bit(modrm.rm), reg16Bit(modrm.reg)));
+				break;
+			default: // Reg from Mem
+			{
+				std::uint32_t ra = realAddress(modrm, so);
+				write16Bit(ra, sbb16Bit(read16Bit(ra), reg16Bit(modrm.reg)));
+				break;
+			}
+			}
+			break;
+		}
+		case 0b00'01'10'10: // SBB 8 bit Reg/Mem from Reg
+		{
+			ModRM modrm = std::bit_cast<ModRM>(memory[EIP()]);
+			++IP;
+
+			switch (modrm.mod)
+			{
+			case 0b11: // Reg from Reg
+				setReg8Bit(modrm.reg, sbb8Bit(reg8Bit(modrm.reg), reg8Bit(modrm.rm)));
+				break;
+			default: // Mem from Reg
+			{
+				std::uint32_t ra = realAddress(modrm, so);
+				setReg8Bit(modrm.reg, sbb8Bit(reg8Bit(modrm.reg), read8Bit(ra)));
+				break;
+			}
+			}
+			break;
+		}
+		case 0b00'01'10'11: // SBB 16 bit Reg/Mem from Reg
+		{
+			ModRM modrm = std::bit_cast<ModRM>(memory[EIP()]);
+			++IP;
+
+			switch (modrm.mod)
+			{
+			case 0b11: // Reg from Reg
+				setReg16Bit(modrm.reg, sbb16Bit(reg16Bit(modrm.reg), reg16Bit(modrm.rm)));
+				break;
+			default: // Mem from Reg
+			{
+				std::uint32_t ra = realAddress(modrm, so);
+				setReg16Bit(modrm.reg, sbb16Bit(reg16Bit(modrm.reg), read16Bit(ra)));
+				break;
+			}
+			}
+			break;
+		}
+		case 0b00'01'11'00: // SBB 8 bit Imm from AL
+		{
+			std::uint8_t imm = memory[EIP()];
+			++IP;
+
+			AX = sbb8Bit(AL(), imm);
+			break;
+		}
+		case 0b00'01'11'01: // SBB 16 bit Imm from AX
+		{
+			std::uint8_t imm = memory[EIP()] << 8;
+			++IP;
+			imm |= memory[EIP()];
+
+			AX = sbb16Bit(AX, imm);
+			break;
+		}
+
+		// DEC
+		case 0b01'00'10'00: [[fallthrough]]; // DEC AX
+		case 0b01'00'10'01: [[fallthrough]]; // DEC CX
+		case 0b01'00'10'10: [[fallthrough]]; // DEC DX
+		case 0b01'00'10'11: [[fallthrough]]; // DEC BX
+		case 0b01'00'11'00: [[fallthrough]]; // DEC SP
+		case 0b01'00'11'01: [[fallthrough]]; // DEC BP
+		case 0b01'00'11'10: [[fallthrough]]; // DEC SI
+		case 0b01'00'11'11:                  // DEC DI
+		{
+			setReg16Bit(instruction & 0b111, sub16Bit(reg16Bit(instruction & 0b111), 1));
 			break;
 		}
 
