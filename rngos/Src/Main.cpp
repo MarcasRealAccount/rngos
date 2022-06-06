@@ -379,7 +379,7 @@ public:
 		}
 
 		// PUSH
-		case 0b11'11'11'11: // PUSH Mem | INC 16 bit Reg/Mem | DEC 16 bit Reg/Mem
+		case 0b11'11'11'11: // PUSH Mem | INC 16 bit Reg/Mem | DEC 16 bit Reg/Mem | CALL Reg/Mem | CALL far Mem
 		{
 			ModRM modrm = std::bit_cast<ModRM>(memory[EIP()]);
 			++IP;
@@ -415,7 +415,40 @@ public:
 				}
 				break;
 			case 0b110: // PUSH Mem
+				if (modrm.mod == 0b11)
+				{
+					interrupt(s_InvalidInstruction);
+					return;
+				}
+
 				push16Bit(read16Bit(realAddress(modrm, so)));
+				break;
+			case 0b010: // CALL Reg/Mem
+				switch (modrm.mod)
+				{
+				case 0b11: // Reg
+					push16Bit(IP);
+					IP += reg16Bit(modrm.rm);
+					break;
+				default: // Mem
+					push16Bit(IP);
+					IP += read16Bit(realAddress(modrm, so));
+					break;
+				}
+				break;
+			case 0b011: // CALL far Mem
+				if (modrm.mod == 0b11)
+				{
+					interrupt(s_InvalidInstruction);
+					return;
+				}
+
+				std::uint32_t segmentSelector = segmentOverride(so, CS);
+				std::uint16_t segmentOffset   = effectiveAddress(modrm);
+				push16Bit(CS);
+				push16Bit(IP);
+				CS = static_cast<std::uint16_t>(segmentSelector);
+				IP = segmentOffset;
 				break;
 			default:
 				interrupt(s_InvalidInstruction);
@@ -2816,7 +2849,6 @@ public:
 			break;
 		}
 
-		// TODO: Add REP prefix
 		case 0b10'10'01'00: // MOVS 8 bit
 		{
 			if (rep)
@@ -3377,6 +3409,37 @@ public:
 				else
 					SI -= 2;
 			}
+			break;
+		}
+
+		// CALL
+		case 0b11'10'10'00: // CALL Disp16
+		{
+			std::uint16_t disp = memory[EIP()];
+			++IP;
+			disp |= memory[EIP()] << 8;
+			++IP;
+
+			push16Bit(IP);
+			IP += disp;
+			break;
+		}
+		case 0b10'01'10'10: // CALL ptr
+		{
+			std::uint16_t segmentOffset = memory[EIP()] << 8;
+			++IP;
+			segmentOffset |= memory[EIP()];
+			++IP;
+
+			std::uint16_t segmentSelector = memory[EIP()] << 8;
+			++IP;
+			segmentSelector |= memory[EIP()];
+			++IP;
+
+			push16Bit(CS);
+			push16Bit(IP);
+			CS = segmentSelector;
+			IP = segmentOffset;
 			break;
 		}
 
