@@ -61,64 +61,6 @@ section .text:
 		mov ax, cx
 		ret
 
-	GlobalLabel rngos_intrin_mul8_f ; cl => a, dl => b, r8 => pFlags
-		mov al, cl
-		mul dl
-		pushfq
-		pop [r8]
-		ret
-	GlobalLabel rngos_intrin_imul8_f ; cl => a, dl => b, r8 => pFlags
-		mov al, cl
-		imul dl
-		pushfq
-		pop [r8]
-		ret
-	GlobalLabel rngos_intrin_mul16_f ; cx => a, dx => b, r8 => pFlags
-		mov ax, cx
-		mul dx
-		pushfq
-		pop [r8]
-		shl edx, 16
-		or ax, dx
-		ret
-	GlobalLabel rngos_intrin_imul16_f ; cx => a, dx => b, r8 => pFlags
-		mov ax, cx
-		imul dx
-		pushfq
-		pop [r8]
-		shl edx, 16
-		or ax, dx
-		ret
-
-	GlobalLabel rngos_intrin_div8_f ; cx => a, dl => b, r8 => pFlags
-		mov ax, cx
-		div dl
-		pushfq
-		pop [r8]
-		ret
-	GlobalLabel rngos_intrin_idiv8_f ; cx => a, dl => b, r8 => pFlags
-		mov ax, cx
-		idiv dl
-		pushfq
-		pop [r8]
-		ret
-	GlobalLabel rngos_intrin_div16_f ; cx => a, dx => b, r8d => c, r9 => pFlags
-		mov ax, cx
-		div r8d
-		pushfq
-		pop [r9]
-		shl edx, 16
-		or ax, dx
-		ret
-	GlobalLabel rngos_intrin_idiv16_f ; cx => a, dx => b, r8d => c, r9 => pFlags
-		mov ax, cx
-		idiv r8d
-		pushfq
-		pop [r9]
-		shl edx, 16
-		or ax, dx
-		ret
-		
 	GlobalLabel rngos_intrin_rol8_f ; cl => a, dl => count, r9 => pFlags
 		mov ax, cx
 		mov cl, dl
