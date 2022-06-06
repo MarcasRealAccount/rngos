@@ -3615,6 +3615,35 @@ public:
 			break;
 		}
 
+		// LOOP
+		case 0b11'10'00'10: [[fallthrough]]; // LOOP Disp8
+		case 0b11'10'00'01: [[fallthrough]]; // LOOPE Disp8
+		case 0b11'10'00'11:                  // LOOPNE Disp8
+		{
+			std::uint8_t disp = memory[EIP()];
+			++IP;
+
+			std::uint16_t count = CX - 1;
+
+			bool branchCond = false;
+			switch (instruction & 0b11)
+			{
+			case 0b10: // LOOP
+				branchCond = count != 0;
+				break;
+			case 0b01: // LOOPE
+				branchCond = ZF() && count != 0;
+				break;
+			case 0b11: // LOOPNE
+				branchCond = !ZF() && count != 0;
+				break;
+			}
+
+			if (branchCond)
+				IP += static_cast<std::int8_t>(disp);
+			break;
+		}
+
 		default:
 		{
 			interrupt(s_InvalidInstruction);
