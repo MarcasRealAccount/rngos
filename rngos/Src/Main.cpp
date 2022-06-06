@@ -107,7 +107,7 @@ public:
 
 	void run()
 	{
-		while (Interrupt != 0 || HandleInterrupt)
+		while (!Halt && (Interrupt != 0 || HandleInterrupt))
 		{
 			executeInstruction();
 		}
@@ -3731,6 +3731,53 @@ public:
 			break;
 		}
 
+		case 0b11'11'10'00: // CLC
+		{
+			setCF(false);
+			break;
+		}
+		case 0b11'11'01'01: // CMC
+		{
+			setCF(!CF());
+			break;
+		}
+		case 0b11'11'10'01: // STC
+		{
+			setCF(true);
+			break;
+		}
+		case 0b11'11'11'00: // CLD
+		{
+			setDF(false);
+			break;
+		}
+		case 0b11'11'11'01: // STD
+		{
+			setDF(true);
+			break;
+		}
+		case 0b11'11'10'10: // CLI
+		{
+			setIF(false);
+			break;
+		}
+		case 0b11'11'10'11: // STI
+		{
+			setIF(true);
+			break;
+		}
+
+		case 0b11'11'01'00: // HLT
+		{
+			Halt = true;
+			return;
+		}
+		case 0b10'01'10'11: // WAIT
+		{
+			// TODO: Idk what to do here tbh...
+			break;
+		}
+
 		default:
 		{
 			interrupt(s_InvalidInstruction);
@@ -4340,6 +4387,7 @@ public:
 
 	std::uint16_t Interrupt       = 0;
 	bool          HandleInterrupt = false;
+	bool          Halt            = false;
 
 	std::uint8_t memory[1048576] { 0 };
 };
