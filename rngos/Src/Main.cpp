@@ -379,7 +379,7 @@ public:
 		}
 
 		// PUSH
-		case 0b11'11'11'11: // PUSH Mem | INC 16 bit Reg/Mem | DEC 16 bit Reg/Mem | CALL Reg/Mem | CALL far Mem
+		case 0b11'11'11'11: // PUSH Mem | INC 16 bit Reg/Mem | DEC 16 bit Reg/Mem | CALL Reg/Mem | CALL far Mem | JMP Reg/Mem | JMP far Mem
 		{
 			ModRM modrm = std::bit_cast<ModRM>(memory[EIP()]);
 			++IP;
@@ -428,11 +428,11 @@ public:
 				{
 				case 0b11: // Reg
 					push16Bit(IP);
-					IP += reg16Bit(modrm.rm);
+					IP += static_cast<std::int16_t>(reg16Bit(modrm.rm));
 					break;
 				default: // Mem
 					push16Bit(IP);
-					IP += read16Bit(realAddress(modrm, so));
+					IP += static_cast<std::int16_t>(read16Bit(realAddress(modrm, so)));
 					break;
 				}
 				break;
@@ -449,6 +449,29 @@ public:
 				push16Bit(IP);
 				CS = static_cast<std::uint16_t>(segmentSelector);
 				IP = segmentOffset;
+				break;
+			case 0b100: // JMP Reg/Mem
+				switch (modrm.mod)
+				{
+				case 0b11: // Reg
+					IP += static_cast<std::int16_t>(reg16Bit(modrm.rm));
+					break;
+				default: // Mem
+					IP += static_cast<std::int16_t>(read16Bit(realAddress(modrm, so));
+					break;
+				}
+				break;
+			case 0b101: // JMP far Mem
+				if (modrm.mod == 0b11)
+				{
+					interrupt(s_InvalidInstruction);
+					return;
+				}
+
+				std::uint32_t segmentSelector = segmentOverride(so, CS);
+				std::uint16_t segmentOffset   = effectiveAddress(modrm);
+				CS                            = static_cast<std::uint16_t>(segmentSelector);
+				IP                            = segmentOffset;
 				break;
 			default:
 				interrupt(s_InvalidInstruction);
@@ -3421,7 +3444,7 @@ public:
 			++IP;
 
 			push16Bit(IP);
-			IP += disp;
+			IP += static_cast<std::int16_t>(disp);
 			break;
 		}
 		case 0b10'01'10'10: // CALL ptr
@@ -3438,6 +3461,40 @@ public:
 
 			push16Bit(CS);
 			push16Bit(IP);
+			CS = segmentSelector;
+			IP = segmentOffset;
+			break;
+		}
+
+		// JMP
+		case 0b11'10'10'11: // JMP Disp8
+		{
+			std::uint8_t disp = memory[EIP()];
+			++IP;
+			IP += static_cast<std::int8_t>(disp);
+			break;
+		}
+		case 0b11'10'10'01: // JMP Disp16
+		{
+			std::uint16_t disp = memory[EIP()];
+			++IP;
+			disp |= memory[EIP()];
+			++IP;
+			IP += static_cast<std::int16_t>(disp);
+			break;
+		}
+		case 0b11'10'10'10: // JMP ptr
+		{
+			std::uint16_t segmentOffset = memory[EIP()] << 8;
+			++IP;
+			segmentOffset |= memory[EIP()];
+			++IP;
+
+			std::uint16_t segmentSelector = memory[EIP()] << 8;
+			++IP;
+			segmentSelector |= memory[EIP()];
+			++IP;
+
 			CS = segmentSelector;
 			IP = segmentOffset;
 			break;
