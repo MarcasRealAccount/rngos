@@ -107,7 +107,7 @@ public:
 
 	void run()
 	{
-		while (Interrupt == 0)
+		while (Interrupt != 0 || HandleInterrupt)
 		{
 			executeInstruction();
 		}
@@ -3684,6 +3684,33 @@ public:
 			break;
 		}
 
+		case 0b11'00'11'01: // INT imm8
+		{
+			std::uint8_t imm = memory[EIP()];
+			++IP;
+
+			interrupt(imm);
+			break;
+		}
+		case 0b11'00'11'00: // INT 3
+		{
+			interrupt(3);
+			break;
+		}
+		case 0b11'00'11'10: // INTO
+		{
+			if (OF())
+				interrupt(s_OverflowInterrupt);
+			break;
+		}
+		case 0b11'00'11'11: // IRET
+		{
+			IP = pop16Bit();
+			CS = pop16Bit();
+			F  = pop16Bit();
+			break;
+		}
+
 		default:
 		{
 			interrupt(s_InvalidInstruction);
@@ -4010,8 +4037,6 @@ public:
 		F = flags & 0xFFFF;
 	}
 
-	void interrupt(std::uint16_t interrupt) { Interrupt = interrupt; }
-
 	std::uint8_t in8Bit(std::uint16_t port)
 	{
 		// IDK wtf this instruction should return...
@@ -4029,6 +4054,23 @@ public:
 	{
 		out8Bit(port, value & 0xFF);
 		out8Bit(port, (value >> 8) & 0xFF);
+	}
+
+	void interrupt(std::uint16_t interrupt)
+	{
+		Interrupt = interrupt;
+
+		// TODO: Find interrupt handler
+		if (HandleInterrupt)
+		{
+			push16Bit(F);
+			push16Bit(CS);
+			push16Bit(IP);
+			setIF(0);
+			setTF(0);
+			CS = 0;
+			IP = 0;
+		}
 	}
 
 	std::uint32_t segmentOverride(std::uint8_t so, std::uint32_t def)
@@ -4276,7 +4318,8 @@ public:
 	std::uint16_t F  = 0;
 	std::uint16_t IP = 0;
 
-	std::uint16_t Interrupt = 0;
+	std::uint16_t Interrupt       = 0;
+	bool          HandleInterrupt = false;
 
 	std::uint8_t memory[1048576] { 0 };
 };
