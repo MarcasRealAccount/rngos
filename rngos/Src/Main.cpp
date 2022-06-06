@@ -3536,6 +3536,85 @@ public:
 			break;
 		}
 
+		// Jcc
+		case 0b01'11'01'00: [[fallthrough]]; // JE/JZ Disp8
+		case 0b01'11'11'00: [[fallthrough]]; // JL/JNGE Disp8
+		case 0b01'11'11'10: [[fallthrough]]; // JLE/JNG Disp8
+		case 0b01'11'00'10: [[fallthrough]]; // JB/JNAE Disp8
+		case 0b01'11'01'10: [[fallthrough]]; // JBE/JNA Disp8
+		case 0b01'11'10'10: [[fallthrough]]; // JP/JPE Disp8
+		case 0b01'11'00'00: [[fallthrough]]; // JO Disp8
+		case 0b01'11'10'00: [[fallthrough]]; // JS Disp8
+		case 0b01'11'01'01: [[fallthrough]]; // JNE/JNZ Disp8
+		case 0b01'11'11'01: [[fallthrough]]; // JNL/JGE Disp8
+		case 0b01'11'11'11: [[fallthrough]]; // JNLE/JG Disp8
+		case 0b01'11'00'11: [[fallthrough]]; // JNB/JAE Disp8
+		case 0b01'11'01'11: [[fallthrough]]; // JNBE/JA Disp8
+		case 0b01'11'10'11: [[fallthrough]]; // JNP/JPO Disp8
+		case 0b01'11'00'01: [[fallthrough]]; // JNO Disp8
+		case 0b01'11'10'01:                  // JNS Disp8
+		{
+			std::uint8_t disp = memory[EIP()];
+			++IP;
+
+			bool jump = false;
+			switch (instruction)
+			{
+			case 0b01'11'01'00: // JE/JZ Disp8
+				jump = ZF();
+				break;
+			case 0b01'11'11'00: // JL/JNGE Disp8
+				jump = SF() != OF();
+				break;
+			case 0b01'11'11'10: // JLE/JNG Disp8
+				jump = ZF() || SF() != OF();
+				break;
+			case 0b01'11'00'10: // JB/JNAE Disp8
+				jump = CF();
+				break;
+			case 0b01'11'01'10: // JBE/JNA Disp8
+				jump = CF() || ZF();
+				break;
+			case 0b01'11'10'10: // JP/JPE Disp8
+				jump = PF();
+				break;
+			case 0b01'11'00'00: // JO Disp8
+				jump = OF();
+				break;
+			case 0b01'11'10'00: // JS Disp8
+				jump = SF();
+				break;
+			case 0b01'11'01'01: // JNE/JNZ Disp8
+				jump = !ZF();
+				break;
+			case 0b01'11'11'01: // JNL/JGE Disp8
+				jump = SF() == OF();
+				break;
+			case 0b01'11'11'11: // JNLE/JG Disp8
+				jump = !ZF() && SF() == OF();
+				break;
+			case 0b01'11'00'11: // JNB/JAE Disp8
+				jump = !CF();
+				break;
+			case 0b01'11'01'11: // JNBE/JA Disp8
+				jump = !CF() && !ZF();
+				break;
+			case 0b01'11'10'11: // JNP/JPO Disp8
+				jump = !PF();
+				break;
+			case 0b01'11'00'01: // JNO Disp8
+				jump = !OF();
+				break;
+			case 0b01'11'10'01: // JNS Disp8
+				jump = !SF();
+				break;
+			}
+
+			if (jump)
+				IP += static_cast<std::int8_t>(disp);
+			break;
+		}
+
 		default:
 		{
 			interrupt(s_InvalidInstruction);
