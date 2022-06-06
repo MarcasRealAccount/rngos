@@ -3506,14 +3506,14 @@ public:
 			IP = pop16Bit();
 			break;
 		}
-		case 0b11'00'00'10: // RET imm16
+		case 0b11'00'00'10: // RET Data16
 		{
-			std::uint16_t imm = memory[EIP()] << 8;
+			std::uint16_t data = memory[EIP()];
 			++IP;
-			imm |= memory[EIP()];
+			data |= memory[EIP()] << 8;
 			++IP;
 
-			SP += imm;
+			SP += data;
 			IP = pop16Bit();
 			break;
 		}
@@ -3523,14 +3523,14 @@ public:
 			CS = pop16Bit();
 			break;
 		}
-		case 0b11'00'10'10: // RET far imm16
+		case 0b11'00'10'10: // RET far Data16
 		{
-			std::uint16_t imm = memory[EIP()] << 8;
+			std::uint16_t data = memory[EIP()];
 			++IP;
-			imm |= memory[EIP()];
+			data |= memory[EIP()] << 8;
 			++IP;
 
-			SP += imm;
+			SP += data;
 			IP = pop16Bit();
 			CS = pop16Bit();
 			break;
@@ -3645,6 +3645,42 @@ public:
 
 			if (branchCond)
 				IP += static_cast<std::int8_t>(disp);
+			break;
+		}
+
+		case 0b11'00'10'00: // ENTER Data16 Imm8
+		{
+			std::uint16_t data = memory[EIP()];
+			++IP;
+			data |= memory[EIP()] << 8;
+			++IP;
+
+			std::uint8_t l = memory[EIP()];
+			++IP;
+
+			l %= 32;
+
+			push16Bit(BP);
+			std::uint16_t ft = SP;
+
+			if (l != 0)
+			{
+				for (std::uint8_t i = 1; i < l; ++i)
+				{
+					BP -= 2;
+					push16Bit(BP);
+				}
+				push16Bit(ft);
+			}
+
+			BP = ft;
+			SP = BP - data;
+			break;
+		}
+		case 0b11'00'10'01: // LEAVE
+		{
+			SP = BP;
+			BP = pop16Bit();
 			break;
 		}
 
