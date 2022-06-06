@@ -115,19 +115,33 @@ public:
 
 	void executeInstruction()
 	{
+		bool         prefix      = true;
+		std::uint8_t rep         = 0;
 		std::uint8_t so          = 0;
 		std::uint8_t instruction = memory[EIP()];
 		++IP;
-		switch (instruction)
+		while (prefix)
 		{
-		case 0b00'10'01'10: // SO ES
-		case 0b00'10'11'10: // SO CS
-		case 0b00'11'01'10: // SO SS
-		case 0b00'11'11'10: // SO DS
-			so          = instruction;
-			instruction = memory[EIP()];
-			++IP;
-			break;
+			switch (instruction)
+			{
+			case 0b00'10'01'10: [[fallthrough]]; // SO ES
+			case 0b00'10'11'10: [[fallthrough]]; // SO CS
+			case 0b00'11'01'10: [[fallthrough]]; // SO SS
+			case 0b00'11'11'10:                  // SO DS
+				so          = instruction;
+				instruction = memory[EIP()];
+				++IP;
+				break;
+			case 0b11'11'00'10: [[fallthrough]]; // REP
+			case 0b11'11'00'11:                  // REPN
+				rep         = instruction;
+				instruction = memory[EIP()];
+				++IP;
+				break;
+			default:
+				prefix = false;
+				break;
+			}
 		}
 
 		switch (instruction)
@@ -2799,6 +2813,570 @@ public:
 			++IP;
 
 			AX = xor16Bit(AX, imm);
+			break;
+		}
+
+		// TODO: Add REP prefix
+		case 0b10'10'01'00: // MOVS 8 bit
+		{
+			if (rep)
+			{
+				if (rep != 0b11'11'00'10)
+				{
+					interrupt(s_InvalidInstruction);
+					return;
+				}
+
+				std::uint32_t srcAddress = (segmentOverride(so, DS) << 4) + SI;
+				std::uint32_t dstAddress = (ES << 4) + DI;
+				while (CX > 0)
+				{
+					write8Bit(dstAddress, read8Bit(srcAddress));
+					if (DF())
+					{
+						++srcAddress;
+						++dstAddress;
+						++SI;
+						++DI;
+					}
+					else
+					{
+						--srcAddress;
+						--dstAddress;
+						--SI;
+						--DI;
+					}
+					--CX;
+				}
+			}
+			else
+			{
+				std::uint32_t srcAddress = (segmentOverride(so, DS) << 4) + SI;
+				std::uint32_t dstAddress = (ES << 4) + DI;
+				write8Bit(dstAddress, read8Bit(srcAddress));
+				if (DF())
+				{
+					++SI;
+					++DI;
+				}
+				else
+				{
+					--SI;
+					--DI;
+				}
+			}
+			break;
+		}
+		case 0b10'10'01'01: // MOVS 16 bit
+		{
+			if (rep)
+			{
+				if (rep != 0b11'11'00'10)
+				{
+					interrupt(s_InvalidInstruction);
+					return;
+				}
+
+				std::uint32_t srcAddress = (segmentOverride(so, DS) << 4) + SI;
+				std::uint32_t dstAddress = (ES << 4) + DI;
+				while (CX > 0)
+				{
+					write16Bit(dstAddress, read16Bit(srcAddress));
+					if (DF())
+					{
+						srcAddress += 2;
+						dstAddress += 2;
+						SI += 2;
+						DI += 2;
+					}
+					else
+					{
+						srcAddress -= 2;
+						dstAddress -= 2;
+						SI -= 2;
+						DI -= 2;
+					}
+					--CX;
+				}
+			}
+			else
+			{
+				std::uint32_t srcAddress = (segmentOverride(so, DS) << 4) + SI;
+				std::uint32_t dstAddress = (ES << 4) + DI;
+				write16Bit(dstAddress, read16Bit(srcAddress));
+				if (DF())
+				{
+					SI += 2;
+					DI += 2;
+				}
+				else
+				{
+					SI -= 2;
+					DI -= 2;
+				}
+			}
+			break;
+		}
+
+		case 0b10'10'01'10: // CMPS 8 bit
+		{
+			if (rep)
+			{
+				std::uint32_t srcAddress = (segmentOverride(so, DS) << 4) + SI;
+				std::uint32_t dstAddress = (ES << 4) + DI;
+				while (CX > 0 && rep == 0b11'11'00'10 ? !ZF() : ZF())
+				{
+					cmp8Bit(read8Bit(dstAddress), read8Bit(srcAddress));
+					if (DF())
+					{
+						++srcAddress;
+						++dstAddress;
+						++SI;
+						++DI;
+					}
+					else
+					{
+						--srcAddress;
+						--dstAddress;
+						--SI;
+						--DI;
+					}
+					--CX;
+				}
+			}
+			else
+			{
+				std::uint32_t srcAddress = (segmentOverride(so, DS) << 4) + SI;
+				std::uint32_t dstAddress = (ES << 4) + DI;
+				cmp8Bit(read8Bit(srcAddress), read8Bit(dstAddress));
+				if (DF())
+				{
+					++SI;
+					++DI;
+				}
+				else
+				{
+					--SI;
+					--DI;
+				}
+			}
+			break;
+		}
+		case 0b10'10'01'11: // CMPS 16 bit
+		{
+			if (rep)
+			{
+				std::uint32_t srcAddress = (segmentOverride(so, DS) << 4) + SI;
+				std::uint32_t dstAddress = (ES << 4) + DI;
+				while (CX > 0 && rep == 0b11'11'00'10 ? !ZF() : ZF())
+				{
+					cmp16Bit(read16Bit(dstAddress), read16Bit(srcAddress));
+					if (DF())
+					{
+						srcAddress += 2;
+						dstAddress += 2;
+						SI += 2;
+						DI += 2;
+					}
+					else
+					{
+						srcAddress -= 2;
+						dstAddress -= 2;
+						SI -= 2;
+						DI -= 2;
+					}
+					--CX;
+				}
+			}
+			else
+			{
+				std::uint32_t srcAddress = (segmentOverride(so, DS) << 4) + SI;
+				std::uint32_t dstAddress = (ES << 4) + DI;
+				cmp16Bit(read16Bit(srcAddress), read16Bit(dstAddress));
+				if (DF())
+				{
+					SI += 2;
+					DI += 2;
+				}
+				else
+				{
+					SI -= 2;
+					DI -= 2;
+				}
+			}
+			break;
+		}
+
+		case 0b10'10'11'10: // SCAS 8 bit
+		{
+			if (rep)
+			{
+				std::uint32_t srcAddress = (ES << 4) + DI;
+				while (CX > 0 && rep == 0b11'11'00'10 ? !ZF() : ZF())
+				{
+					cmp8Bit(AL(), read8Bit(srcAddress));
+					if (DF())
+					{
+						++srcAddress;
+						++DI;
+					}
+					else
+					{
+						--srcAddress;
+						--DI;
+					}
+					--CX;
+				}
+			}
+			else
+			{
+				std::uint32_t srcAddress = (ES << 4) + DI;
+				cmp8Bit(AL(), read8Bit(srcAddress));
+				if (DF())
+					++DI;
+				else
+					--DI;
+			}
+			break;
+		}
+		case 0b10'10'11'11: // SCAS 16 bit
+		{
+			if (rep)
+			{
+				std::uint32_t srcAddress = (ES << 4) + DI;
+				while (CX > 0 && rep == 0b11'11'00'10 ? !ZF() : ZF())
+				{
+					cmp16Bit(AX, read16Bit(srcAddress));
+					if (DF())
+					{
+						srcAddress += 2;
+						DI += 2;
+					}
+					else
+					{
+						srcAddress -= 2;
+						DI -= 2;
+					}
+					--CX;
+				}
+			}
+			else
+			{
+				std::uint32_t srcAddress = (ES << 4) + DI;
+				cmp16Bit(AX, read16Bit(srcAddress));
+				if (DF())
+					DI += 2;
+				else
+					DI -= 2;
+			}
+			break;
+		}
+
+		case 0b10'10'11'00: // LODS 8 bit
+		{
+			if (rep)
+			{
+				if (rep != 0b11'11'00'10)
+				{
+					interrupt(s_InvalidInstruction);
+					return;
+				}
+
+				std::uint32_t srcAddress = (segmentOverride(so, DS) << 4) + SI;
+				while (CX > 0)
+				{
+					AX = read8Bit(srcAddress);
+					if (DF())
+					{
+						++srcAddress;
+						++SI;
+					}
+					else
+					{
+						--srcAddress;
+						--SI;
+					}
+					--CX;
+				}
+			}
+			else
+			{
+				std::uint32_t srcAddress = (segmentOverride(so, DS) << 4) + SI;
+				AX                       = read8Bit(srcAddress);
+				if (DF())
+					++SI;
+				else
+					--SI;
+			}
+			break;
+		}
+		case 0b10'10'11'01: // LODS 16 bit
+		{
+			if (rep)
+			{
+				if (rep != 0b11'11'00'10)
+				{
+					interrupt(s_InvalidInstruction);
+					return;
+				}
+
+				std::uint32_t srcAddress = (segmentOverride(so, DS) << 4) + SI;
+				while (CX > 0)
+				{
+					AX = read16Bit(srcAddress);
+					if (DF())
+					{
+						srcAddress += 2;
+						SI += 2;
+					}
+					else
+					{
+						srcAddress -= 2;
+						SI -= 2;
+					}
+					--CX;
+				}
+			}
+			else
+			{
+				std::uint32_t srcAddress = (segmentOverride(so, DS) << 4) + SI;
+				AX                       = read16Bit(srcAddress);
+				if (DF())
+					SI += 2;
+				else
+					SI -= 2;
+			}
+			break;
+		}
+
+		case 0b10'10'10'10: // STOS 8 bit
+		{
+			if (rep)
+			{
+				if (rep != 0b11'11'00'10)
+				{
+					interrupt(s_InvalidInstruction);
+					return;
+				}
+
+				std::uint32_t dstAddress = (ES << 4) + DI;
+				while (CX > 0)
+				{
+					write8Bit(dstAddress, AL());
+					if (DF())
+					{
+						++dstAddress;
+						++DI;
+					}
+					else
+					{
+						--dstAddress;
+						--DI;
+					}
+					--CX;
+				}
+			}
+			else
+			{
+				std::uint32_t dstAddress = (ES << 4) + DI;
+				write8Bit(dstAddress, AL());
+				if (DF())
+					++DI;
+				else
+					--DI;
+			}
+			break;
+		}
+		case 0b10'10'10'11: // STOS 16 bit
+		{
+			if (rep)
+			{
+				if (rep != 0b11'11'00'10)
+				{
+					interrupt(s_InvalidInstruction);
+					return;
+				}
+
+				std::uint32_t dstAddress = (ES << 4) + DI;
+				while (CX > 0)
+				{
+					write16Bit(dstAddress, AX);
+					if (DF())
+					{
+						dstAddress += 2;
+						DI += 2;
+					}
+					else
+					{
+						dstAddress -= 2;
+						DI -= 2;
+					}
+					--CX;
+				}
+			}
+			else
+			{
+				std::uint32_t dstAddress = (ES << 4) + DI;
+				write16Bit(dstAddress, AX);
+				if (DF())
+					DI += 2;
+				else
+					DI -= 2;
+			}
+			break;
+		}
+
+		case 0b01'10'11'00: // INS 8 bit
+		{
+			if (rep)
+			{
+				if (rep != 0b11'11'00'10)
+				{
+					interrupt(s_InvalidInstruction);
+					return;
+				}
+
+				std::uint32_t dstAddress = (ES << 4) + DI;
+				while (CX > 0)
+				{
+					write8Bit(dstAddress, in8Bit(DX));
+					if (DF())
+					{
+						++dstAddress;
+						++DI;
+					}
+					else
+					{
+						--dstAddress;
+						--DI;
+					}
+					--CX;
+				}
+			}
+			else
+			{
+				std::uint32_t dstAddress = (ES << 4) + DI;
+				write8Bit(dstAddress, in8Bit(DX));
+				if (DF())
+					++DI;
+				else
+					--DI;
+			}
+			break;
+		}
+		case 0b01'10'11'01: // INS 16 bit
+		{
+			if (rep)
+			{
+				if (rep != 0b11'11'00'10)
+				{
+					interrupt(s_InvalidInstruction);
+					return;
+				}
+
+				std::uint32_t dstAddress = (ES << 4) + DI;
+				while (CX > 0)
+				{
+					write16Bit(dstAddress, in16Bit(DX));
+					if (DF())
+					{
+						dstAddress += 2;
+						DI += 2;
+					}
+					else
+					{
+						dstAddress -= 2;
+						DI -= 2;
+					}
+					--CX;
+				}
+			}
+			else
+			{
+				std::uint32_t dstAddress = (ES << 4) + DI;
+				write16Bit(dstAddress, in16Bit(DX));
+				if (DF())
+					DI += 2;
+				else
+					DI -= 2;
+			}
+			break;
+		}
+
+		case 0b01'10'11'10: // OUTS 8 bit
+		{
+			if (rep)
+			{
+				if (rep != 0b11'11'00'10)
+				{
+					interrupt(s_InvalidInstruction);
+					return;
+				}
+
+				std::uint32_t srcAddress = (segmentOverride(so, DS) << 4) + SI;
+				while (CX > 0)
+				{
+					out8Bit(DX, read8Bit(srcAddress));
+					if (DF())
+					{
+						++srcAddress;
+						++SI;
+					}
+					else
+					{
+						--srcAddress;
+						--SI;
+					}
+					--CX;
+				}
+			}
+			else
+			{
+				std::uint32_t srcAddress = (segmentOverride(so, DS) << 4) + SI;
+				out8Bit(DX, read8Bit(srcAddress));
+				if (DF())
+					++SI;
+				else
+					--SI;
+			}
+			break;
+		}
+		case 0b01'10'11'11: // OUTS 16 bit
+		{
+			if (rep)
+			{
+				if (rep != 0b11'11'00'10)
+				{
+					interrupt(s_InvalidInstruction);
+					return;
+				}
+
+				std::uint32_t srcAddress = (segmentOverride(so, DS) << 4) + SI;
+				while (CX > 0)
+				{
+					out16Bit(DX, read16Bit(srcAddress));
+					if (DF())
+					{
+						srcAddress += 2;
+						SI += 2;
+					}
+					else
+					{
+						srcAddress -= 2;
+						SI -= 2;
+					}
+					--CX;
+				}
+			}
+			else
+			{
+				std::uint32_t srcAddress = (segmentOverride(so, DS) << 4) + SI;
+				out16Bit(DX, read16Bit(srcAddress));
+				if (DF())
+					SI += 2;
+				else
+					SI -= 2;
+			}
 			break;
 		}
 
