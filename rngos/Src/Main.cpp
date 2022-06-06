@@ -764,7 +764,7 @@ public:
 			}
 			break;
 		}
-		case 0b10'00'00'00: // ADD 8 bit Imm to Reg/Mem | ADC 8 bit Imm to Reg/Mem | SUB 8 bit Imm from Reg/Mem | SBB 8 bit Imm from Reg/Mem | CMP 8 bit Imm to Reg/Mem
+		case 0b10'00'00'00: // ADD 8 bit Imm to Reg/Mem | ADC 8 bit Imm to Reg/Mem | SUB 8 bit Imm from Reg/Mem | SBB 8 bit Imm from Reg/Mem | CMP 8 bit Imm to Reg/Mem | AND 8 bit Imm with Reg/Mem
 		{
 			ModRM modrm = std::bit_cast<ModRM>(memory[EIP()]);
 			++IP;
@@ -804,6 +804,9 @@ public:
 				r = a;
 				cmp8Bit(a, imm);
 				break;
+			case 0b100: // AND
+				r = and8Bit(a, imm);
+				break;
 			default:
 				interrupt(s_InvalidInstruction);
 				return;
@@ -820,7 +823,7 @@ public:
 			}
 			break;
 		}
-		case 0b10'00'00'01: // ADD 16 bit Imm to Reg/Mem | ADC 16 bit Imm to Reg/Mem | SUB 16 bit Imm from Reg/Mem | SBB 16 bit Imm from Reg/Mem | CMP 16 bit Imm to Reg/Mem
+		case 0b10'00'00'01: // ADD 16 bit Imm to Reg/Mem | ADC 16 bit Imm to Reg/Mem | SUB 16 bit Imm from Reg/Mem | SBB 16 bit Imm from Reg/Mem | CMP 16 bit Imm to Reg/Mem | AND 16 bit Imm with Reg/Mem
 		{
 			ModRM modrm = std::bit_cast<ModRM>(memory[EIP()]);
 			++IP;
@@ -861,6 +864,9 @@ public:
 			case 0b111: // CMP
 				r = a;
 				cmp16Bit(a, imm);
+				break;
+			case 0b100: // AND
+				r = and16Bit(a, imm);
 				break;
 			default:
 				interrupt(s_InvalidInstruction);
@@ -2456,6 +2462,24 @@ public:
 				setReg16Bit(modrm.reg, and16Bit(reg16Bit(modrm.reg), read16Bit(realAddress(modrm, so))));
 				break;
 			}
+			break;
+		}
+		case 0b00'10'01'00: // AND 8 bit imm with AL
+		{
+			std::uint8_t imm = memory[EIP()];
+			++IP;
+
+			AX = and8Bit(AL(), imm);
+			break;
+		}
+		case 0b00'10'01'01: // AND 16 bit imm with AX
+		{
+			std::uint16_t imm = memory[EIP()] << 8;
+			++IP;
+			imm |= memory[EIP()];
+			++IP;
+
+			AX = and16Bit(AX, imm);
 			break;
 		}
 
