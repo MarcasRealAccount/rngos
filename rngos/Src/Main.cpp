@@ -3552,7 +3552,8 @@ public:
 		case 0b01'11'01'11: [[fallthrough]]; // JNBE/JA Disp8
 		case 0b01'11'10'11: [[fallthrough]]; // JNP/JPO Disp8
 		case 0b01'11'00'01: [[fallthrough]]; // JNO Disp8
-		case 0b01'11'10'01:                  // JNS Disp8
+		case 0b01'11'10'01: [[fallthrough]]; // JNS Disp8
+		case 0b11'10'00'11:                  // JCXZ Disp8
 		{
 			std::uint8_t disp = memory[EIP()];
 			++IP;
@@ -3608,6 +3609,9 @@ public:
 			case 0b01'11'10'01: // JNS Disp8
 				jump = !SF();
 				break;
+			case 0b11'10'00'11: // JCXZ Disp8
+				jump = CX == 0;
+				break;
 			}
 
 			if (jump)
@@ -3618,7 +3622,7 @@ public:
 		// LOOP
 		case 0b11'10'00'10: [[fallthrough]]; // LOOP Disp8
 		case 0b11'10'00'01: [[fallthrough]]; // LOOPE Disp8
-		case 0b11'10'00'11:                  // LOOPNE Disp8
+		case 0b11'10'00'00:                  // LOOPNE Disp8
 		{
 			std::uint8_t disp = memory[EIP()];
 			++IP;
@@ -3634,7 +3638,7 @@ public:
 			case 0b01: // LOOPE
 				branchCond = ZF() && count != 0;
 				break;
-			case 0b11: // LOOPNE
+			case 0b00: // LOOPNE
 				branchCond = !ZF() && count != 0;
 				break;
 			}
