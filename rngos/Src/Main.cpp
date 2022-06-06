@@ -3500,6 +3500,42 @@ public:
 			break;
 		}
 
+		// RET
+		case 0b11'00'00'11: // RET
+		{
+			IP = pop16Bit();
+			break;
+		}
+		case 0b11'00'00'10: // RET imm16
+		{
+			std::uint16_t imm = memory[EIP()] << 8;
+			++IP;
+			imm |= memory[EIP()];
+			++IP;
+
+			SP += imm;
+			IP = pop16Bit();
+			break;
+		}
+		case 0b11'00'10'11: // RET far
+		{
+			IP = pop16Bit();
+			CS = pop16Bit();
+			break;
+		}
+		case 0b11'00'10'10: // RET far imm16
+		{
+			std::uint16_t imm = memory[EIP()] << 8;
+			++IP;
+			imm |= memory[EIP()];
+			++IP;
+
+			SP += imm;
+			IP = pop16Bit();
+			CS = pop16Bit();
+			break;
+		}
+
 		default:
 		{
 			interrupt(s_InvalidInstruction);
