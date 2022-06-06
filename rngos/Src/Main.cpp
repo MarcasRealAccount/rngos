@@ -43,6 +43,9 @@ extern "C" std::uint16_t rngos_intrin_shl16_f(std::uint16_t a, std::uint8_t b, s
 extern "C" std::uint16_t rngos_intrin_shr16_f(std::uint16_t a, std::uint8_t b, std::uint64_t* pFlags);
 extern "C" std::uint16_t rngos_intrin_sar16_f(std::uint16_t a, std::uint8_t b, std::uint64_t* pFlags);
 
+extern "C" std::uint8_t  rngos_intrin_and8_f(std::uint8_t a, std::uint8_t b, std::uint64_t* pFlags);
+extern "C" std::uint16_t rngos_intrin_and16_f(std::uint16_t a, std::uint8_t b, std::uint64_t* pFlags);
+
 extern "C" void rngos_intrin_cmp8_f(std::uint8_t a, std::uint8_t b, std::uint64_t* pFlags);
 extern "C" void rngos_intrin_cmp16_f(std::uint16_t a, std::uint16_t b, std::uint64_t* pFlags);
 
@@ -2384,6 +2387,78 @@ public:
 			break;
 		}
 
+		// AND
+		case 0b00'10'00'00: // AND 8 bit Reg with Reg/Mem
+		{
+			ModRM modrm = std::bit_cast<ModRM>(memory[EIP()]);
+			++IP;
+
+			switch (modrm.mod)
+			{
+			case 0b11: // Reg with Reg
+				setReg8Bit(modrm.rm, and8Bit(reg8Bit(modrm.rm), reg8Bit(modrm.reg)));
+				break;
+			default: // Mem with Reg
+			{
+				std::uint32_t ra = realAddress(modrm, so);
+				write8Bit(ra, and8Bit(read8Bit(ra), reg8Bit(modrm.reg)));
+				break;
+			}
+			}
+			break;
+		}
+		case 0b00'10'00'01: // AND 16 bit Reg with Reg/Mem
+		{
+			ModRM modrm = std::bit_cast<ModRM>(memory[EIP()]);
+			++IP;
+
+			switch (modrm.mod)
+			{
+			case 0b11: // Reg with Reg
+				setReg16Bit(modrm.rm, and16Bit(reg16Bit(modrm.rm), reg16Bit(modrm.reg)));
+				break;
+			default: // Mem with Reg
+			{
+				std::uint32_t ra = realAddress(modrm, so);
+				write16Bit(ra, and16Bit(read16Bit(ra), reg16Bit(modrm.reg)));
+				break;
+			}
+			}
+			break;
+		}
+		case 0b00'10'00'10: // AND 8 bit Reg/Mem with Reg
+		{
+			ModRM modrm = std::bit_cast<ModRM>(memory[EIP()]);
+			++IP;
+
+			switch (modrm.mod)
+			{
+			case 0b11: // Reg with Reg
+				setReg8Bit(modrm.reg, and8Bit(reg8Bit(modrm.reg), reg8Bit(modrm.rm)));
+				break;
+			default: // Mem with Reg
+				setReg8Bit(modrm.reg, and8Bit(reg8Bit(modrm.reg), read8Bit(realAddress(modrm, so))));
+				break;
+			}
+			break;
+		}
+		case 0b00'10'00'11: // AND 16 bit Reg/Mem with Reg
+		{
+			ModRM modrm = std::bit_cast<ModRM>(memory[EIP()]);
+			++IP;
+
+			switch (modrm.mod)
+			{
+			case 0b11: // Reg with Reg
+				setReg16Bit(modrm.reg, and16Bit(reg16Bit(modrm.reg), reg16Bit(modrm.rm)));
+				break;
+			default: // Mem with Reg
+				setReg16Bit(modrm.reg, and16Bit(reg16Bit(modrm.reg), read16Bit(realAddress(modrm, so))));
+				break;
+			}
+			break;
+		}
+
 		default:
 		{
 			interrupt(s_InvalidInstruction);
@@ -2628,6 +2703,22 @@ public:
 	{
 		std::uint64_t flags = 0;
 		std::uint16_t r     = rngos_intrin_sar16_f(a, count, &flags);
+		F                   = flags & 0xFFFF;
+		return r;
+	}
+
+	std::uint8_t and8Bit(std::uint8_t a, std::uint8_t b)
+	{
+		std::uint64_t flags = 0;
+		std::uint8_t  r     = rngos_intrin_and8_f(a, b, &flags);
+		F                   = flags & 0xFFFF;
+		return r;
+	}
+
+	std::uint16_t and16Bit(std::uint16_t a, std::uint16_t b)
+	{
+		std::uint64_t flags = 0;
+		std::uint16_t r     = rngos_intrin_and16_f(a, b, &flags);
 		F                   = flags & 0xFFFF;
 		return r;
 	}

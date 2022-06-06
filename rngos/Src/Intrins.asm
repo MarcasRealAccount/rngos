@@ -218,6 +218,19 @@ section .text:
 		pop [r9]
 		ret
 
+	GlobalLabel rngos_intrin_and8_f ; cl => a, dl => b, r8 => pFlags
+		and cl, dl
+		pushfq
+		pop [r8]
+		mov al, cl
+		ret
+	GlobalLabel rngos_intrin_and16_f ; cx => a, dx => b, r8 => pFlags
+		and cx, dx
+		pushfq
+		pop [r8]
+		mov ax, cx
+		ret
+
 	GlobalLabel rngos_intrin_cmp8_f ; cl => a, dl => b, r8 => pFlags
 		cmp cl, dl
 		pushfq
