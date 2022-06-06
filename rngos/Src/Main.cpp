@@ -1399,7 +1399,7 @@ public:
 		}
 
 		// NEG
-		case 0b11'11'01'10: // NEG 8 bit Reg/Mem | MUL 8 bit Reg/Mem with AX | IMUL 8 bit Reg/Mem with AX | DIV 8 bit Reg/Mem with AX | IDIV 8 bit Reg/Mem with AX
+		case 0b11'11'01'10: // NEG 8 bit Reg/Mem | MUL 8 bit Reg/Mem with AX | IMUL 8 bit Reg/Mem with AX | DIV 8 bit Reg/Mem with AX | IDIV 8 bit Reg/Mem with AX | TEST 8 bit Imm with Reg/Mem
 		{
 			ModRM modrm = std::bit_cast<ModRM>(memory[EIP()]);
 			++IP;
@@ -1464,13 +1464,31 @@ public:
 					break;
 				}
 				break;
+			case 0b000: // TEST 8 bit Imm with Reg/Mem
+			{
+				std::uint32_t ra = realAddress(modrm, so);
+
+				std::uint8_t imm = memory[EIP()];
+				++IP;
+
+				switch (modrm.mod)
+				{
+				case 0b11: // Imm with Reg
+					and8Bit(reg8Bit(modrm.rm), imm);
+					break;
+				default: // Imm with Mem
+					and8Bit(read8Bit(ra), imm);
+					break;
+				}
+				break;
+			}
 			default:
 				interrupt(s_InvalidInstruction);
 				return;
 			}
 			break;
 		}
-		case 0b11'11'01'11: // NEG 16 bit Reg/Mem | MUL 16 bit Reg/Mem with AX | IMUL 16 bit Reg/Mem with AX | DIV 16 bit Reg/Mem with AX | IDIV 16 bit Reg/Mem with AX
+		case 0b11'11'01'11: // NEG 16 bit Reg/Mem | MUL 16 bit Reg/Mem with AX | IMUL 16 bit Reg/Mem with AX | DIV 16 bit Reg/Mem with AX | IDIV 16 bit Reg/Mem with AX | TEST 16 bit Imm with Reg/Mem
 		{
 			ModRM modrm = std::bit_cast<ModRM>(memory[EIP()]);
 			++IP;
@@ -1567,6 +1585,26 @@ public:
 				}
 				}
 				break;
+			case 0b000: // TEST 16 bit Imm with Reg/Mem
+			{
+				std::uint32_t ra = realAddress(modrm, so);
+
+				std::uint16_t imm = memory[EIP()] << 8;
+				++IP;
+				imm |= memory[EIP()];
+				++IP;
+
+				switch (modrm.mod)
+				{
+				case 0b11: // Imm with Reg
+					and16Bit(reg16Bit(modrm.rm), imm);
+					break;
+				default: // Imm with Mem
+					and16Bit(read16Bit(ra), imm);
+					break;
+				}
+				break;
+			}
 			default:
 				interrupt(s_InvalidInstruction);
 				return;
@@ -2480,6 +2518,58 @@ public:
 			++IP;
 
 			AX = and16Bit(AX, imm);
+			break;
+		}
+
+		// TEST
+		case 0b10'00'01'00: // TEST 8 bit Reg with Reg/Mem
+		{
+			ModRM modrm = std::bit_cast<ModRM>(memory[EIP()]);
+			++IP;
+
+			switch (modrm.mod)
+			{
+			case 0b11: // Reg with Reg
+				and8Bit(reg8Bit(modrm.rm), reg8Bit(modrm.reg));
+				break;
+			default: // Reg with Mem
+				and8Bit(read8Bit(realAddress(modrm, so)), reg8Bit(modrm.reg));
+				break;
+			}
+			break;
+		}
+		case 0b10'00'01'01: // TEST 16 bit Reg with Reg/Mem
+		{
+			ModRM modrm = std::bit_cast<ModRM>(memory[EIP()]);
+			++IP;
+
+			switch (modrm.mod)
+			{
+			case 0b11: // Reg with Reg
+				and16Bit(reg16Bit(modrm.rm), reg16Bit(modrm.reg));
+				break;
+			default: // Reg with Mem
+				and16Bit(read16Bit(realAddress(modrm, so)), reg16Bit(modrm.reg));
+				break;
+			}
+			break;
+		}
+		case 0b10'10'10'00: // TEST 8 bit with AL
+		{
+			std::uint8_t imm = memory[EIP()];
+			++IP;
+
+			and8Bit(AL(), imm);
+			break;
+		}
+		case 0b10'10'10'01: // TEST 16 bit with AX
+		{
+			std::uint16_t imm = memory[EIP()] << 8;
+			++IP;
+			imm |= memory[EIP()];
+			++IP;
+
+			and16Bit(AX, imm);
 			break;
 		}
 
