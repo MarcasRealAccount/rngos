@@ -231,6 +231,19 @@ section .text:
 		mov ax, cx
 		ret
 
+	GlobalLabel rngos_intrin_or8_f ; cl => a, dl => b, r8 => pFlags
+		or cl, dl
+		pushfq
+		pop [r8]
+		mov al, cl
+		ret
+	GlobalLabel rngos_intrin_or16_f ; cx => a, dx => b, r8 => pFlags
+		or cx, dx
+		pushfq
+		pop [r8]
+		mov ax, cx
+		ret
+
 	GlobalLabel rngos_intrin_cmp8_f ; cl => a, dl => b, r8 => pFlags
 		cmp cl, dl
 		pushfq
