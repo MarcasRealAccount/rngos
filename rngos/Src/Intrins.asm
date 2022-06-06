@@ -118,6 +118,105 @@ section .text:
 		shl edx, 16
 		or ax, dx
 		ret
+		
+	GlobalLabel rngos_intrin_rol8_f ; cl => a, dl => count, r9 => pFlags
+		mov ax, cx
+		mov cl, dl
+		rol al, cl
+		pushfq
+		pop [r9]
+		ret
+	GlobalLabel rngos_intrin_ror8_f ; cl => a, dl => count, r9 => pFlags
+		mov ax, cx
+		mov cl, dl
+		ror al, cl
+		pushfq
+		pop [r9]
+		ret
+	GlobalLabel rngos_intrin_rcl8_f ; cl => a, dl => count, r9 => pFlags
+		mov ax, cx
+		mov cl, dl
+		rcl al, cl
+		pushfq
+		pop [r9]
+		ret
+	GlobalLabel rngos_intrin_rcr8_f ; cl => a, dl => count, r9 => pFlags
+		mov ax, cx
+		mov cl, dl
+		rcr al, cl
+		pushfq
+		pop [r9]
+		ret
+	GlobalLabel rngos_intrin_shl8_f ; cl => a, dl => count, r9 => pFlags
+		mov ax, cx
+		mov cl, dl
+		shl al, cl
+		pushfq
+		pop [r9]
+		ret
+	GlobalLabel rngos_intrin_shr8_f ; cl => a, dl => count, r9 => pFlags
+		mov ax, cx
+		mov cl, dl
+		shr al, cl
+		pushfq
+		pop [r9]
+		ret
+	GlobalLabel rngos_intrin_sar8_f ; cl => a, dl => count, r9 => pFlags
+		mov ax, cx
+		mov cl, dl
+		sar al, cl
+		pushfq
+		pop [r9]
+		ret
+	GlobalLabel rngos_intrin_rol16_f ; cx => a, dl => count, r9 => pFlags
+		mov ax, cx
+		mov cl, dl
+		rol ax, cl
+		pushfq
+		pop [r9]
+		ret
+	GlobalLabel rngos_intrin_ror16_f ; cx => a, dl => count, r9 => pFlags
+		mov ax, cx
+		mov cl, dl
+		ror ax, cl
+		pushfq
+		pop [r9]
+		ret
+	GlobalLabel rngos_intrin_rcl16_f ; cx => a, dl => count, r9 => pFlags
+		mov ax, cx
+		mov cl, dl
+		rcl ax, cl
+		pushfq
+		pop [r9]
+		ret
+	GlobalLabel rngos_intrin_rcr16_f ; cx => a, dl => count, r9 => pFlags
+		mov ax, cx
+		mov cl, dl
+		rcr ax, cl
+		pushfq
+		pop [r9]
+		ret
+	GlobalLabel rngos_intrin_shl16_f ; cx => a, dl => count, r9 => pFlags
+		mov ax, cx
+		mov cl, dl
+		shl ax, cl
+		pushfq
+		pop [r9]
+		ret
+	GlobalLabel rngos_intrin_shr16_f ; cx => a, dl => count, r9 => pFlags
+		mov ax, cx
+		mov cl, dl
+		shr ax, cl
+		pushfq
+		pop [r9]
+		ret
+	GlobalLabel rngos_intrin_sar16_f ; cx => a, dl => count, r9 => pFlags
+		mov ax, cx
+		mov cl, dl
+		sar ax, cl
+		pushfq
+		pop [r9]
+		ret
 
 	GlobalLabel rngos_intrin_cmp8_f ; cl => a, dl => b, r8 => pFlags
 		cmp cl, dl

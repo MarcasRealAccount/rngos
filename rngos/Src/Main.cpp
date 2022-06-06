@@ -28,6 +28,21 @@ extern "C" std::uint16_t rngos_intrin_idiv8_f(std::uint16_t a, std::uint8_t b, s
 extern "C" std::uint32_t rngos_intrin_div16_f(std::uint16_t a, std::uint16_t b, std::uint16_t c, std::uint64_t* pFlags);
 extern "C" std::uint32_t rngos_intrin_idiv16_f(std::uint16_t a, std::uint16_t b, std::uint16_t c, std::uint64_t* pFlags);
 
+extern "C" std::uint8_t  rngos_intrin_rol8_f(std::uint8_t a, std::uint8_t b, std::uint64_t* pFlags);
+extern "C" std::uint8_t  rngos_intrin_ror8_f(std::uint8_t a, std::uint8_t b, std::uint64_t* pFlags);
+extern "C" std::uint8_t  rngos_intrin_rcl8_f(std::uint8_t a, std::uint8_t b, std::uint64_t* pFlags);
+extern "C" std::uint8_t  rngos_intrin_rcr8_f(std::uint8_t a, std::uint8_t b, std::uint64_t* pFlags);
+extern "C" std::uint8_t  rngos_intrin_shl8_f(std::uint8_t a, std::uint8_t b, std::uint64_t* pFlags);
+extern "C" std::uint8_t  rngos_intrin_shr8_f(std::uint8_t a, std::uint8_t b, std::uint64_t* pFlags);
+extern "C" std::uint8_t  rngos_intrin_sar8_f(std::uint8_t a, std::uint8_t b, std::uint64_t* pFlags);
+extern "C" std::uint16_t rngos_intrin_rol16_f(std::uint16_t a, std::uint8_t b, std::uint64_t* pFlags);
+extern "C" std::uint16_t rngos_intrin_ror16_f(std::uint16_t a, std::uint8_t b, std::uint64_t* pFlags);
+extern "C" std::uint16_t rngos_intrin_rcl16_f(std::uint16_t a, std::uint8_t b, std::uint64_t* pFlags);
+extern "C" std::uint16_t rngos_intrin_rcr16_f(std::uint16_t a, std::uint8_t b, std::uint64_t* pFlags);
+extern "C" std::uint16_t rngos_intrin_shl16_f(std::uint16_t a, std::uint8_t b, std::uint64_t* pFlags);
+extern "C" std::uint16_t rngos_intrin_shr16_f(std::uint16_t a, std::uint8_t b, std::uint64_t* pFlags);
+extern "C" std::uint16_t rngos_intrin_sar16_f(std::uint16_t a, std::uint8_t b, std::uint64_t* pFlags);
+
 extern "C" void rngos_intrin_cmp8_f(std::uint8_t a, std::uint8_t b, std::uint64_t* pFlags);
 extern "C" void rngos_intrin_cmp16_f(std::uint16_t a, std::uint16_t b, std::uint64_t* pFlags);
 
@@ -2501,6 +2516,118 @@ public:
 	{
 		std::uint64_t flags = 0;
 		std::uint32_t r     = rngos_intrin_idiv16_f(a, b, c, &flags);
+		F                   = flags & 0xFFFF;
+		return r;
+	}
+
+	std::uint8_t rol8Bit(std::uint8_t a, std::uint8_t count)
+	{
+		std::uint64_t flags = 0;
+		std::uint8_t  r     = rngos_intrin_rol8_f(a, count, &flags);
+		F                   = flags & 0xFFFF;
+		return r;
+	}
+
+	std::uint8_t ror8Bit(std::uint8_t a, std::uint8_t count)
+	{
+		std::uint64_t flags = 0;
+		std::uint8_t  r     = rngos_intrin_ror8_f(a, count, &flags);
+		F                   = flags & 0xFFFF;
+		return r;
+	}
+
+	std::uint8_t rcl8Bit(std::uint8_t a, std::uint8_t count)
+	{
+		std::uint64_t flags = 0;
+		std::uint8_t  r     = rngos_intrin_rcl8_f(a, count, &flags);
+		F                   = flags & 0xFFFF;
+		return r;
+	}
+
+	std::uint8_t rcr8Bit(std::uint8_t a, std::uint8_t count)
+	{
+		std::uint64_t flags = 0;
+		std::uint8_t  r     = rngos_intrin_rcr8_f(a, count, &flags);
+		F                   = flags & 0xFFFF;
+		return r;
+	}
+
+	std::uint8_t shl8Bit(std::uint8_t a, std::uint8_t count)
+	{
+		std::uint64_t flags = 0;
+		std::uint8_t  r     = rngos_intrin_shl8_f(a, count, &flags);
+		F                   = flags & 0xFFFF;
+		return r;
+	}
+
+	std::uint8_t shr8Bit(std::uint8_t a, std::uint8_t count)
+	{
+		std::uint64_t flags = 0;
+		std::uint8_t  r     = rngos_intrin_shr8_f(a, count, &flags);
+		F                   = flags & 0xFFFF;
+		return r;
+	}
+
+	std::uint8_t sar8Bit(std::uint8_t a, std::uint8_t count)
+	{
+		std::uint64_t flags = 0;
+		std::uint8_t  r     = rngos_intrin_sar8_f(a, count, &flags);
+		F                   = flags & 0xFFFF;
+		return r;
+	}
+
+	std::uint16_t rol16Bit(std::uint16_t a, std::uint8_t count)
+	{
+		std::uint64_t flags = 0;
+		std::uint16_t r     = rngos_intrin_rol16_f(a, count, &flags);
+		F                   = flags & 0xFFFF;
+		return r;
+	}
+
+	std::uint16_t ror16Bit(std::uint16_t a, std::uint8_t count)
+	{
+		std::uint64_t flags = 0;
+		std::uint16_t r     = rngos_intrin_ror16_f(a, count, &flags);
+		F                   = flags & 0xFFFF;
+		return r;
+	}
+
+	std::uint16_t rcl16Bit(std::uint16_t a, std::uint8_t count)
+	{
+		std::uint64_t flags = 0;
+		std::uint16_t r     = rngos_intrin_rcl16_f(a, count, &flags);
+		F                   = flags & 0xFFFF;
+		return r;
+	}
+
+	std::uint16_t rcr16Bit(std::uint16_t a, std::uint8_t count)
+	{
+		std::uint64_t flags = 0;
+		std::uint16_t r     = rngos_intrin_rcr16_f(a, count, &flags);
+		F                   = flags & 0xFFFF;
+		return r;
+	}
+
+	std::uint16_t shl16Bit(std::uint16_t a, std::uint8_t count)
+	{
+		std::uint64_t flags = 0;
+		std::uint16_t r     = rngos_intrin_shl16_f(a, count, &flags);
+		F                   = flags & 0xFFFF;
+		return r;
+	}
+
+	std::uint16_t shr16Bit(std::uint16_t a, std::uint8_t count)
+	{
+		std::uint64_t flags = 0;
+		std::uint16_t r     = rngos_intrin_shr16_f(a, count, &flags);
+		F                   = flags & 0xFFFF;
+		return r;
+	}
+
+	std::uint16_t sar16Bit(std::uint16_t a, std::uint8_t count)
+	{
+		std::uint64_t flags = 0;
+		std::uint16_t r     = rngos_intrin_sar16_f(a, count, &flags);
 		F                   = flags & 0xFFFF;
 		return r;
 	}
