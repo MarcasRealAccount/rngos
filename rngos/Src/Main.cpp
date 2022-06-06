@@ -18,6 +18,11 @@ extern "C" std::uint16_t rngos_intrin_sub16_f(std::uint16_t a, std::uint16_t b, 
 extern "C" std::uint8_t  rngos_intrin_sbb8_f(std::uint8_t a, std::uint8_t b, std::uint64_t* pFlags);
 extern "C" std::uint16_t rngos_intrin_sbb16_f(std::uint16_t a, std::uint16_t b, std::uint64_t* pFlags);
 
+extern "C" std::uint16_t rngos_intrin_mul8_f(std::uint8_t a, std::uint8_t b, std::uint64_t* pFlags);
+extern "C" std::uint16_t rngos_intrin_imul8_f(std::uint8_t a, std::uint8_t b, std::uint64_t* pFlags);
+extern "C" std::uint32_t rngos_intrin_mul16_f(std::uint16_t a, std::uint16_t b, std::uint64_t* pFlags);
+extern "C" std::uint32_t rngos_intrin_imul16_f(std::uint16_t a, std::uint16_t b, std::uint64_t* pFlags);
+
 extern "C" void rngos_intrin_cmp8_f(std::uint8_t a, std::uint8_t b, std::uint64_t* pFlags);
 extern "C" void rngos_intrin_cmp16_f(std::uint16_t a, std::uint16_t b, std::uint64_t* pFlags);
 
@@ -392,14 +397,14 @@ public:
 			push16Bit(regSeg((instruction >> 3) & 0b11));
 			break;
 		}
-		case 0b01'10'10'01: // PUSH 8 bit
+		case 0b01'10'10'10: // PUSH 8 bit
 		{
 			std::uint8_t imm = memory[EIP()];
 			++IP;
 			push8Bit(imm);
 			break;
 		}
-		case 0b01'10'10'11: // PUSH 16 bit
+		case 0b01'10'10'00: // PUSH 16 bit
 		{
 			std::uint16_t imm = memory[EIP()];
 			++IP;
@@ -1365,7 +1370,7 @@ public:
 		}
 
 		// NEG
-		case 0b11'11'01'10: // NEG 8 bit Reg/Mem
+		case 0b11'11'01'10: // NEG 8 bit Reg/Mem | MUL 8 bit Reg/Mem with AX | IMUL 8 bit Reg/Mem with AX
 		{
 			ModRM modrm = std::bit_cast<ModRM>(memory[EIP()]);
 			++IP;
@@ -1382,6 +1387,97 @@ public:
 				{
 					std::uint32_t ra = realAddress(modrm, so);
 					write8Bit(ra, sub8Bit(0, read8Bit(ra)));
+					break;
+				}
+				}
+				break;
+			case 0b100: // MUL 8 bit Reg/Mem with AX
+				switch (modrm.mod)
+				{
+				case 0b11: // Reg
+					AX = mul8Bit(AX & 0xFF, reg8Bit(modrm.rm));
+					break;
+				default:
+				{
+					std::uint32_t ra = realAddress(modrm, so);
+					AX               = mul8Bit(AX & 0xFF, read8Bit(ra));
+					break;
+				}
+				}
+				break;
+			case 0b101: // IMUL 8 bit Reg/Mem with AX
+				switch (modrm.mod)
+				{
+				case 0b11: // Reg
+					AX = imul8Bit(AX & 0xFF, reg8Bit(modrm.rm));
+					break;
+				default:
+				{
+					std::uint32_t ra = realAddress(modrm, so);
+					AX               = imul8Bit(AX & 0xFF, read8Bit(ra));
+					break;
+				}
+				}
+				break;
+			default:
+				interrupt(s_InvalidInstruction);
+				return;
+			}
+			break;
+		}
+		case 0b11'11'01'11: // NEG 16 bit Reg/Mem | MUL 16 bit Reg/Mem with AX | IMUL 16 bit Reg/Mem with AX
+		{
+			ModRM modrm = std::bit_cast<ModRM>(memory[EIP()]);
+			++IP;
+
+			switch (modrm.reg)
+			{
+			case 0b011: // NEG 16 bit Reg/Mem
+				switch (modrm.mod)
+				{
+				case 0b11: // Reg
+					setReg16Bit(modrm.rm, sub16Bit(0, reg16Bit(modrm.rm)));
+					break;
+				default:
+				{
+					std::uint32_t ra = realAddress(modrm, so);
+					write16Bit(ra, sub16Bit(0, read16Bit(ra)));
+					break;
+				}
+				}
+				break;
+			case 0b100: // MUL 16 bit Reg/Mem with AX
+				switch (modrm.mod)
+				{
+				case 0b11: // Reg
+					std::uint32_t r = mul16Bit(AX, reg16Bit(modrm.rm));
+					AX              = r & 0xFFFF;
+					DX              = (r >> 16) & 0xFFFF;
+					break;
+				default:
+				{
+					std::uint32_t ra = realAddress(modrm, so);
+					std::uint32_t r  = mul16Bit(AX, read16Bit(ra));
+					AX               = r & 0xFFFF;
+					DX               = (r >> 16) & 0xFFFF;
+					break;
+				}
+				}
+				break;
+			case 0b101: // IMUL 16 bit Reg/Mem with AX
+				switch (modrm.mod)
+				{
+				case 0b11: // Reg
+					std::uint32_t r = imul16Bit(AX, reg16Bit(modrm.rm));
+					AX              = r & 0xFFFF;
+					DX              = (r >> 16) & 0xFFFF;
+					break;
+				default:
+				{
+					std::uint32_t ra = realAddress(modrm, so);
+					std::uint32_t r  = imul16Bit(AX, read16Bit(ra));
+					AX               = r & 0xFFFF;
+					DX               = (r >> 16) & 0xFFFF;
 					break;
 				}
 				}
@@ -1481,6 +1577,52 @@ public:
 			break;
 		}
 
+		// IMUL
+		case 0b01'10'10'11: // IMUL 8 bit Imm with Reg/Mem into Reg
+		{
+			ModRM modrm = std::bit_cast<ModRM>(memory[EIP()]);
+			++IP;
+
+			std::uint8_t imm = memory[EIP()];
+			++IP;
+
+			switch (modrm.mod)
+			{
+			case 0b11: // Imm with Reg into Reg
+				setReg8Bit(modrm.reg, imul8Bit(reg8Bit(modrm.rm), imm));
+				break;
+			default: // Imm with Mem into Reg
+			{
+				setReg8Bit(modrm.reg, imul8Bit(read8Bit(realAddress(modrm, so)), imm));
+				break;
+			}
+			}
+			break;
+		}
+		case 0b01'10'10'01: // IMUL 16 bit Imm with Reg/Mem into Reg
+		{
+			ModRM modrm = std::bit_cast<ModRM>(memory[EIP()]);
+			++IP;
+
+			std::uint16_t imm = memory[EIP()] << 8;
+			++IP;
+			imm |= memory[EIP()];
+			++IP;
+
+			switch (modrm.mod)
+			{
+			case 0b11: // Imm with Reg into Reg
+				setReg16Bit(modrm.reg, imul16Bit(reg16Bit(modrm.rm), imm));
+				break;
+			default: // Imm with Mem into Reg
+			{
+				setReg16Bit(modrm.reg, imul16Bit(read16Bit(realAddress(modrm, so)), imm));
+				break;
+			}
+			}
+			break;
+		}
+
 		default:
 		{
 			interrupt(s_InvalidInstruction);
@@ -1549,6 +1691,38 @@ public:
 	{
 		std::uint64_t flags = F;
 		std::uint16_t r     = rngos_intrin_sbb16_f(a, b, &flags);
+		F                   = flags & 0xFFFF;
+		return r;
+	}
+
+	std::uint16_t mul8Bit(std::uint8_t a, std::uint8_t b)
+	{
+		std::uint64_t flags = 0;
+		std::uint16_t r     = rngos_intrin_mul8_f(a, b, &flags);
+		F                   = flags & 0xFFFF;
+		return r;
+	}
+
+	std::uint16_t imul8Bit(std::uint8_t a, std::uint8_t b)
+	{
+		std::uint64_t flags = 0;
+		std::uint16_t r     = rngos_intrin_imul8_f(a, b, &flags);
+		F                   = flags & 0xFFFF;
+		return r;
+	}
+
+	std::uint32_t mul16Bit(std::uint16_t a, std::uint16_t b)
+	{
+		std::uint64_t flags = 0;
+		std::uint32_t r     = rngos_intrin_mul16_f(a, b, &flags);
+		F                   = flags & 0xFFFF;
+		return r;
+	}
+
+	std::uint32_t imul16Bit(std::uint16_t a, std::uint16_t b)
+	{
+		std::uint64_t flags = 0;
+		std::uint32_t r     = rngos_intrin_imul16_f(a, b, &flags);
 		F                   = flags & 0xFFFF;
 		return r;
 	}

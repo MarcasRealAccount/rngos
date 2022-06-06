@@ -61,6 +61,31 @@ section .text:
 		mov ax, cx
 		ret
 
+	GlobalLabel rngos_intrin_mul8_f ; cl => a, dl => b, r8 => pFlags
+		mul cl, dl
+		pushfq
+		pop [r8]
+		ret
+	GlobalLabel rngos_intrin_imul8_f ; cl => a, dl => b, r8 => pFlags
+		imul cl, dl
+		pushfq
+		pop [r8]
+		ret
+	GlobalLabel rngos_intrin_mul16_f ; cx => a, dx => b, r8 => pFlags
+		mul cx, dx
+		pushfq
+		pop [r8]
+		shl dx, 16
+		or ax, dx
+		ret
+	GlobalLabel rngos_intrin_imul16_f ; cx => a, dx => b, r8 => pFlags
+		imul cx, dx
+		pushfq
+		pop [r8]
+		shl dx, 16
+		or ax, dx
+		ret
+
 	GlobalLabel rngos_intrin_cmp8_f ; cl => a, dl => b, r8 => pFlags
 		cmp cl, dl
 		pushfq
