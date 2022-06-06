@@ -3711,6 +3711,26 @@ public:
 			break;
 		}
 
+		case 0b01'10'00'10: // BOUND Reg Mem
+		{
+			ModRM modrm = std::bit_cast<ModRM>(memory[EIP()]);
+			++IP;
+
+			std::uint32_t ra = realAddress(modrm, so);
+
+			std::uint16_t min = read16Bit(ra);
+			std::uint16_t max = read16Bit(ra + 2);
+
+			std::uint16_t ai = reg16Bit(modrm.reg);
+
+			if (ai < min || ai > max)
+			{
+				interrupt(s_BoundsRangeException);
+				return;
+			}
+			break;
+		}
+
 		default:
 		{
 			interrupt(s_InvalidInstruction);
