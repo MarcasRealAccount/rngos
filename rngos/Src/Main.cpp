@@ -2509,7 +2509,7 @@ public:
 
 	std::uint32_t div16Bit(std::uint16_t a, std::uint16_t b, std::uint16_t c)
 	{
-		if (b == 0)
+		if (c == 0)
 		{
 			interrupt(Interrupts::s_DE);
 			return 0;
@@ -2527,7 +2527,7 @@ public:
 
 	std::uint32_t idiv16Bit(std::uint16_t a, std::uint16_t b, std::uint16_t c)
 	{
-		if (b == 0)
+		if (c == 0)
 		{
 			interrupt(Interrupts::s_DE);
 			return 0;
