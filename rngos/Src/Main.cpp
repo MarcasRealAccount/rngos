@@ -119,8 +119,7 @@ public:
 		start = std::chrono::high_resolution_clock::now();
 		while (!Halt && Interrupt == 0)
 		{
-			auto cur = std::chrono::high_resolution_clock::now();
-			if (std::chrono::duration_cast<std::chrono::duration<float>>(cur - start).count() > 60.0f)
+			if (totalInstructions > 1'000'000)
 				break;
 
 			executeInstruction();
@@ -249,22 +248,22 @@ public:
 		}
 		case 0b10'10'00'00: // MOV 8 bit Mem to AL
 		{
-			AL(read8Bit((static_cast<std::uint32_t>(segmentOverride(so, DS)) << 4) + pullIPDisp16()));
+			AL(read8Bit(Address(segmentOverride(so, DS), pullIPDisp16())));
 			break;
 		}
 		case 0b10'10'00'01: // MOV 16 bit Mem to AX
 		{
-			AX = read16Bit((static_cast<std::uint32_t>(segmentOverride(so, DS)) << 4) + pullIPDisp16());
+			AX = read16Bit(Address(segmentOverride(so, DS), pullIPDisp16()));
 			break;
 		}
 		case 0b10'10'00'10: // MOV 8 bit AL to Mem
 		{
-			write8Bit((static_cast<std::uint32_t>(segmentOverride(so, DS)) << 4) + pullIPDisp16(), AL());
+			write8Bit(Address(segmentOverride(so, DS), pullIPDisp16()), AL());
 			break;
 		}
 		case 0b10'10'00'11: // MOV 16 bit AX to Mem
 		{
-			write16Bit((static_cast<std::uint32_t>(segmentOverride(so, DS)) << 4) + pullIPDisp16(), AX);
+			write16Bit(Address(segmentOverride(so, DS), pullIPDisp16()), AX);
 			break;
 		}
 		case 0b10'00'11'10: // MOV Reg/Mem to Segment Register
@@ -539,7 +538,7 @@ public:
 
 		case 0b11'01'01'11: // XLAT
 		{
-			AX = read8Bit((static_cast<std::uint32_t>(segmentOverride(so, DS)) << 4) + BX + AL());
+			AX = read8Bit(Address(segmentOverride(so, DS), BX) + AL());
 			break;
 		}
 
@@ -1492,8 +1491,8 @@ public:
 					return;
 				}
 
-				std::uint32_t srcAddress = (static_cast<std::uint32_t>(segmentOverride(so, DS)) << 4) + SI;
-				std::uint32_t dstAddress = (static_cast<std::uint32_t>(ES) << 4) + DI;
+				std::uint32_t srcAddress = Address(segmentOverride(so, DS), SI);
+				std::uint32_t dstAddress = Address(ES, DI);
 				while (CX > 0)
 				{
 					write8Bit(dstAddress, read8Bit(srcAddress));
@@ -1516,8 +1515,8 @@ public:
 			}
 			else
 			{
-				std::uint32_t srcAddress = (static_cast<std::uint32_t>(segmentOverride(so, DS)) << 4) + SI;
-				std::uint32_t dstAddress = (static_cast<std::uint32_t>(ES) << 4) + DI;
+				std::uint32_t srcAddress = Address(segmentOverride(so, DS), SI);
+				std::uint32_t dstAddress = Address(ES, DI);
 				write8Bit(dstAddress, read8Bit(srcAddress));
 				if (DF())
 				{
@@ -1542,8 +1541,8 @@ public:
 					return;
 				}
 
-				std::uint32_t srcAddress = (static_cast<std::uint32_t>(segmentOverride(so, DS)) << 4) + SI;
-				std::uint32_t dstAddress = (static_cast<std::uint32_t>(ES) << 4) + DI;
+				std::uint32_t srcAddress = Address(segmentOverride(so, DS), SI);
+				std::uint32_t dstAddress = Address(ES, DI);
 				while (CX > 0)
 				{
 					write16Bit(dstAddress, read16Bit(srcAddress));
@@ -1566,8 +1565,8 @@ public:
 			}
 			else
 			{
-				std::uint32_t srcAddress = (static_cast<std::uint32_t>(segmentOverride(so, DS)) << 4) + SI;
-				std::uint32_t dstAddress = (static_cast<std::uint32_t>(ES) << 4) + DI;
+				std::uint32_t srcAddress = Address(segmentOverride(so, DS), SI);
+				std::uint32_t dstAddress = Address(ES, DI);
 				write16Bit(dstAddress, read16Bit(srcAddress));
 				if (DF())
 				{
@@ -1587,8 +1586,8 @@ public:
 		{
 			if (rep)
 			{
-				std::uint32_t srcAddress = (static_cast<std::uint32_t>(segmentOverride(so, DS)) << 4) + SI;
-				std::uint32_t dstAddress = (static_cast<std::uint32_t>(ES) << 4) + DI;
+				std::uint32_t srcAddress = Address(segmentOverride(so, DS), SI);
+				std::uint32_t dstAddress = Address(ES, DI);
 				while (CX > 0 && rep == 0b11'11'00'10 ? !ZF() : ZF())
 				{
 					cmp8Bit(read8Bit(dstAddress), read8Bit(srcAddress));
@@ -1611,8 +1610,8 @@ public:
 			}
 			else
 			{
-				std::uint32_t srcAddress = (static_cast<std::uint32_t>(segmentOverride(so, DS)) << 4) + SI;
-				std::uint32_t dstAddress = (static_cast<std::uint32_t>(ES) << 4) + DI;
+				std::uint32_t srcAddress = Address(segmentOverride(so, DS), SI);
+				std::uint32_t dstAddress = Address(ES, DI);
 				cmp8Bit(read8Bit(srcAddress), read8Bit(dstAddress));
 				if (DF())
 				{
@@ -1631,8 +1630,8 @@ public:
 		{
 			if (rep)
 			{
-				std::uint32_t srcAddress = (static_cast<std::uint32_t>(segmentOverride(so, DS)) << 4) + SI;
-				std::uint32_t dstAddress = (static_cast<std::uint32_t>(ES) << 4) + DI;
+				std::uint32_t srcAddress = Address(segmentOverride(so, DS), SI);
+				std::uint32_t dstAddress = Address(ES, DI);
 				while (CX > 0 && rep == 0b11'11'00'10 ? !ZF() : ZF())
 				{
 					cmp16Bit(read16Bit(dstAddress), read16Bit(srcAddress));
@@ -1655,8 +1654,8 @@ public:
 			}
 			else
 			{
-				std::uint32_t srcAddress = (static_cast<std::uint32_t>(segmentOverride(so, DS)) << 4) + SI;
-				std::uint32_t dstAddress = (static_cast<std::uint32_t>(ES) << 4) + DI;
+				std::uint32_t srcAddress = Address(segmentOverride(so, DS), SI);
+				std::uint32_t dstAddress = Address(ES, DI);
 				cmp16Bit(read16Bit(srcAddress), read16Bit(dstAddress));
 				if (DF())
 				{
@@ -1676,7 +1675,7 @@ public:
 		{
 			if (rep)
 			{
-				std::uint32_t srcAddress = (static_cast<std::uint32_t>(ES) << 4) + DI;
+				std::uint32_t srcAddress = Address(ES, DI);
 				while (CX > 0 && rep == 0b11'11'00'10 ? !ZF() : ZF())
 				{
 					cmp8Bit(AL(), read8Bit(srcAddress));
@@ -1695,7 +1694,7 @@ public:
 			}
 			else
 			{
-				std::uint32_t srcAddress = (static_cast<std::uint32_t>(ES) << 4) + DI;
+				std::uint32_t srcAddress = Address(ES, DI);
 				cmp8Bit(AL(), read8Bit(srcAddress));
 				if (DF())
 					++DI;
@@ -1708,7 +1707,7 @@ public:
 		{
 			if (rep)
 			{
-				std::uint32_t srcAddress = (static_cast<std::uint32_t>(ES) << 4) + DI;
+				std::uint32_t srcAddress = Address(ES, DI);
 				while (CX > 0 && rep == 0b11'11'00'10 ? !ZF() : ZF())
 				{
 					cmp16Bit(AX, read16Bit(srcAddress));
@@ -1727,7 +1726,7 @@ public:
 			}
 			else
 			{
-				std::uint32_t srcAddress = (static_cast<std::uint32_t>(ES) << 4) + DI;
+				std::uint32_t srcAddress = Address(ES, DI);
 				cmp16Bit(AX, read16Bit(srcAddress));
 				if (DF())
 					DI += 2;
@@ -1747,7 +1746,7 @@ public:
 					return;
 				}
 
-				std::uint32_t srcAddress = (static_cast<std::uint32_t>(segmentOverride(so, DS)) << 4) + SI;
+				std::uint32_t srcAddress = Address(segmentOverride(so, DS), SI);
 				while (CX > 0)
 				{
 					AX = read8Bit(srcAddress);
@@ -1766,7 +1765,7 @@ public:
 			}
 			else
 			{
-				std::uint32_t srcAddress = (static_cast<std::uint32_t>(segmentOverride(so, DS)) << 4) + SI;
+				std::uint32_t srcAddress = Address(segmentOverride(so, DS), SI);
 				AX                       = read8Bit(srcAddress);
 				if (DF())
 					++SI;
@@ -1785,7 +1784,7 @@ public:
 					return;
 				}
 
-				std::uint32_t srcAddress = (static_cast<std::uint32_t>(segmentOverride(so, DS)) << 4) + SI;
+				std::uint32_t srcAddress = Address(segmentOverride(so, DS), SI);
 				while (CX > 0)
 				{
 					AX = read16Bit(srcAddress);
@@ -1804,7 +1803,7 @@ public:
 			}
 			else
 			{
-				std::uint32_t srcAddress = (static_cast<std::uint32_t>(segmentOverride(so, DS)) << 4) + SI;
+				std::uint32_t srcAddress = Address(segmentOverride(so, DS), SI);
 				AX                       = read16Bit(srcAddress);
 				if (DF())
 					SI += 2;
@@ -1824,7 +1823,7 @@ public:
 					return;
 				}
 
-				std::uint32_t dstAddress = (static_cast<std::uint32_t>(ES) << 4) + DI;
+				std::uint32_t dstAddress = Address(ES, DI);
 				while (CX > 0)
 				{
 					write8Bit(dstAddress, AL());
@@ -1843,7 +1842,7 @@ public:
 			}
 			else
 			{
-				std::uint32_t dstAddress = (static_cast<std::uint32_t>(ES) << 4) + DI;
+				std::uint32_t dstAddress = Address(ES, DI);
 				write8Bit(dstAddress, AL());
 				if (DF())
 					++DI;
@@ -1862,7 +1861,7 @@ public:
 					return;
 				}
 
-				std::uint32_t dstAddress = (static_cast<std::uint32_t>(ES) << 4) + DI;
+				std::uint32_t dstAddress = Address(ES, DI);
 				while (CX > 0)
 				{
 					write16Bit(dstAddress, AX);
@@ -1881,7 +1880,7 @@ public:
 			}
 			else
 			{
-				std::uint32_t dstAddress = (static_cast<std::uint32_t>(ES) << 4) + DI;
+				std::uint32_t dstAddress = Address(ES, DI);
 				write16Bit(dstAddress, AX);
 				if (DF())
 					DI += 2;
@@ -1901,7 +1900,7 @@ public:
 					return;
 				}
 
-				std::uint32_t dstAddress = (static_cast<std::uint32_t>(ES) << 4) + DI;
+				std::uint32_t dstAddress = Address(ES, DI);
 				while (CX > 0)
 				{
 					write8Bit(dstAddress, in8Bit(DX));
@@ -1920,7 +1919,7 @@ public:
 			}
 			else
 			{
-				std::uint32_t dstAddress = (static_cast<std::uint32_t>(ES) << 4) + DI;
+				std::uint32_t dstAddress = Address(ES, DI);
 				write8Bit(dstAddress, in8Bit(DX));
 				if (DF())
 					++DI;
@@ -1939,7 +1938,7 @@ public:
 					return;
 				}
 
-				std::uint32_t dstAddress = (static_cast<std::uint32_t>(ES) << 4) + DI;
+				std::uint32_t dstAddress = Address(ES, DI);
 				while (CX > 0)
 				{
 					write16Bit(dstAddress, in16Bit(DX));
@@ -1958,7 +1957,7 @@ public:
 			}
 			else
 			{
-				std::uint32_t dstAddress = (static_cast<std::uint32_t>(ES) << 4) + DI;
+				std::uint32_t dstAddress = Address(ES, DI);
 				write16Bit(dstAddress, in16Bit(DX));
 				if (DF())
 					DI += 2;
@@ -1978,7 +1977,7 @@ public:
 					return;
 				}
 
-				std::uint32_t srcAddress = (static_cast<std::uint32_t>(segmentOverride(so, DS)) << 4) + SI;
+				std::uint32_t srcAddress = Address(segmentOverride(so, DS), SI);
 				while (CX > 0)
 				{
 					out8Bit(DX, read8Bit(srcAddress));
@@ -1997,7 +1996,7 @@ public:
 			}
 			else
 			{
-				std::uint32_t srcAddress = (static_cast<std::uint32_t>(segmentOverride(so, DS)) << 4) + SI;
+				std::uint32_t srcAddress = Address(segmentOverride(so, DS), SI);
 				out8Bit(DX, read8Bit(srcAddress));
 				if (DF())
 					++SI;
@@ -2016,7 +2015,7 @@ public:
 					return;
 				}
 
-				std::uint32_t srcAddress = (static_cast<std::uint32_t>(segmentOverride(so, DS)) << 4) + SI;
+				std::uint32_t srcAddress = Address(segmentOverride(so, DS), SI);
 				while (CX > 0)
 				{
 					out16Bit(DX, read16Bit(srcAddress));
@@ -2035,7 +2034,7 @@ public:
 			}
 			else
 			{
-				std::uint32_t srcAddress = (static_cast<std::uint32_t>(segmentOverride(so, DS)) << 4) + SI;
+				std::uint32_t srcAddress = Address(segmentOverride(so, DS), SI);
 				out16Bit(DX, read16Bit(srcAddress));
 				if (DF())
 					SI += 2;
@@ -2779,7 +2778,7 @@ public:
 
 	std::uint32_t realAddress(ModRM modrm, std::uint8_t so)
 	{
-		std::uint32_t base = 0;
+		std::uint16_t base = 0;
 		switch (modrm.rm)
 		{
 		case 0b010: base = SS; break;
@@ -2789,7 +2788,7 @@ public:
 		default: base = segmentOverride(so, DS); break;
 		}
 
-		return (base << 4) + modrm.offset;
+		return Address(base, modrm.offset);
 	}
 
 	void push16Bit(std::uint16_t value)
@@ -2800,7 +2799,7 @@ public:
 			return;
 		}
 		SP -= 2;
-		write16Bit((static_cast<std::uint32_t>(SS) << 4) + SP, value);
+		write16Bit(Address(SS, SP), value);
 	}
 
 	std::uint16_t pop16Bit()
@@ -2810,7 +2809,7 @@ public:
 			interrupt(Interrupts::s_OF);
 			return 0;
 		}
-		std::uint32_t addr = (static_cast<std::uint32_t>(SS) << 4) + SP;
+		std::uint32_t addr = Address(SS, SP);
 		if (addr == 0)
 		{
 			interrupt(Interrupts::s_OF); // TODO: Ugly hack to disallow instant retf
@@ -3080,7 +3079,8 @@ public:
 		}
 		return modrm;
 	}
-	std::uint32_t EIP() const { return (static_cast<std::uint32_t>(CS) << 4) + IP; }
+	std::uint32_t Address(std::uint16_t segmentSelector, std::uint16_t segmentOffset) const { return ((static_cast<std::uint32_t>(segmentSelector) << 4) + segmentOffset) & 0xF'FFFF; }
+	std::uint32_t EIP() const { return Address(CS, IP); }
 
 	float IPS() const { return totalInstructions / std::chrono::duration_cast<std::chrono::duration<float>>(end - start).count(); }
 
@@ -3146,7 +3146,7 @@ int main(int argc, char** argv)
 		auto        end        = Clock::now();
 		float       time       = std::chrono::duration_cast<std::chrono::duration<float>>(end - start).count();
 		bool        outputFile = false;
-		std::string message    = "execution in " + std::to_string(time) + " seconds, IPS: " + std::to_string(cpu->IPS());
+		std::string message    = "execution in " + std::to_string(time) + " seconds, IPS: " + std::to_string(cpu->IPS()) + ", IP=" + std::to_string(cpu->CS) + ":" + std::to_string(cpu->IP);
 		std::string filename   = "os_" + std::to_string(run) + ".bin";
 		switch (reason)
 		{
