@@ -6,7 +6,7 @@
 #include <iostream>
 #include <random>
 
-#include <intrin.h>
+#include <thread>
 
 extern "C" std::uint8_t  rngos_intrin_add8_f(std::uint8_t a, std::uint8_t b, std::uint64_t* pFlags);
 extern "C" std::uint16_t rngos_intrin_add16_f(std::uint16_t a, std::uint16_t b, std::uint64_t* pFlags);
@@ -34,13 +34,13 @@ extern "C" std::uint16_t rngos_intrin_shr16_f(std::uint16_t a, std::uint8_t b, s
 extern "C" std::uint16_t rngos_intrin_sar16_f(std::uint16_t a, std::uint8_t b, std::uint64_t* pFlags);
 
 extern "C" std::uint8_t  rngos_intrin_and8_f(std::uint8_t a, std::uint8_t b, std::uint64_t* pFlags);
-extern "C" std::uint16_t rngos_intrin_and16_f(std::uint16_t a, std::uint8_t b, std::uint64_t* pFlags);
+extern "C" std::uint16_t rngos_intrin_and16_f(std::uint16_t a, std::uint16_t b, std::uint64_t* pFlags);
 
 extern "C" std::uint8_t  rngos_intrin_or8_f(std::uint8_t a, std::uint8_t b, std::uint64_t* pFlags);
-extern "C" std::uint16_t rngos_intrin_or16_f(std::uint16_t a, std::uint8_t b, std::uint64_t* pFlags);
+extern "C" std::uint16_t rngos_intrin_or16_f(std::uint16_t a, std::uint16_t b, std::uint64_t* pFlags);
 
 extern "C" std::uint8_t  rngos_intrin_xor8_f(std::uint8_t a, std::uint8_t b, std::uint64_t* pFlags);
-extern "C" std::uint16_t rngos_intrin_xor16_f(std::uint16_t a, std::uint8_t b, std::uint64_t* pFlags);
+extern "C" std::uint16_t rngos_intrin_xor16_f(std::uint16_t a, std::uint16_t b, std::uint64_t* pFlags);
 
 extern "C" void rngos_intrin_cmp8_f(std::uint8_t a, std::uint8_t b, std::uint64_t* pFlags);
 extern "C" void rngos_intrin_cmp16_f(std::uint16_t a, std::uint16_t b, std::uint64_t* pFlags);
@@ -48,6 +48,7 @@ extern "C" void rngos_intrin_cmp16_f(std::uint16_t a, std::uint16_t b, std::uint
 namespace Interrupts
 {
 	static constexpr std::uint16_t s_DE = 0;
+	static constexpr std::uint16_t s_DB = 1;
 	static constexpr std::uint16_t s_BP = 3;
 	static constexpr std::uint16_t s_OF = 4;
 	static constexpr std::uint16_t s_BR = 5;
@@ -81,6 +82,10 @@ struct CPU
 public:
 	void boot(std::uint8_t* bytes, std::size_t count)
 	{
+		Halt              = false;
+		Interrupt         = 0;
+		totalInstructions = 0;
+
 		AX = 0;
 		DX = 0;
 		CX = 0;
@@ -95,6 +100,7 @@ public:
 		ES = 0;
 		F  = 0xF002;
 		IP = 0x7C00;
+
 		std::memset(memory, 0, 0x7C00);
 		std::memcpy(memory + 0x7C00, bytes, count);
 		std::memset(memory + 0x7C00 + count, 0, sizeof(memory) - 0x7C00 - count);
@@ -104,10 +110,16 @@ public:
 
 	void run()
 	{
-		while (!Halt && (Interrupt != 0 || HandleInterrupt))
+		start = std::chrono::system_clock::now();
+		while (!Halt && Interrupt == 0)
 		{
+			auto cur = std::chrono::system_clock::now();
+			if (std::chrono::duration_cast<std::chrono::duration<float>>(cur - start).count() > 60.0f)
+				break;
+
 			executeInstruction();
 		}
+		end = std::chrono::system_clock::now();
 	}
 
 	void executeInstruction()
@@ -449,8 +461,8 @@ public:
 		}
 		case 0b10'00'01'11: // XCHG 16 bit Reg/Mem with Reg
 		{
-			ModRM        modrm = pullIPModRM();
-			std::uint8_t value = readRM16Bit(modrm, so);
+			ModRM         modrm = pullIPModRM();
+			std::uint16_t value = readRM16Bit(modrm, so);
 			writeRM16Bit(modrm, reg16Bit(modrm.reg), so);
 			setReg16Bit(modrm.reg, value);
 			break;
@@ -466,7 +478,7 @@ public:
 		{
 			std::uint16_t value = reg16Bit(instruction & 0b111);
 			setReg16Bit(instruction & 0b111, AX);
-			setReg16Bit(AX, value);
+			AX = value;
 			break;
 		}
 
@@ -915,13 +927,9 @@ public:
 				break;
 			case 0b110: // DIV 8 bit Reg/Mem with AX
 				AX = div8Bit(AX, readRM8Bit(modrm, so));
-				if (Interrupt)
-					return;
 				break;
 			case 0b111: // IDIV 8 bit Reg/Mem with AX
 				AX = idiv8Bit(AX, readRM8Bit(modrm, so));
-				if (Interrupt)
-					return;
 				break;
 			case 0b000: // TEST 8 bit Imm with Reg/Mem
 				and8Bit(readRM8Bit(modrm, so), pullIPImm8());
@@ -957,16 +965,24 @@ public:
 				DX              = (r >> 16) & 0xFFFF;
 				break;
 			}
-			case 0b110: // DIV 8 bit Reg/Mem with AX
-				AX = div16Bit(AX, DX, readRM16Bit(modrm, so));
+			case 0b110: // DIV 16 bit Reg/Mem with AX
+			{
+				std::uint32_t r = div16Bit(AX, DX, readRM16Bit(modrm, so));
 				if (Interrupt)
-					return;
+					break;
+				AX = r & 0xFFFF;
+				DX = (r >> 16) & 0xFFFF;
 				break;
-			case 0b111: // IDIV 8 bit Reg/Mem with AX
-				AX = idiv16Bit(AX, DX, readRM16Bit(modrm, so));
+			}
+			case 0b111: // IDIV 16 bit Reg/Mem with AX
+			{
+				std::uint32_t r = idiv16Bit(AX, DX, readRM16Bit(modrm, so));
 				if (Interrupt)
-					return;
+					break;
+				AX = r & 0xFFFF;
+				DX = (r >> 16) & 0xFFFF;
 				break;
+			}
 			case 0b000: // TEST 16 bit Imm with Reg/Mem
 				and16Bit(readRM16Bit(modrm, so), pullIPImm16());
 				break;
@@ -1105,7 +1121,7 @@ public:
 			switch (secondInstruction)
 			{
 			case 0b00'00'10'10: // AAD
-				AX = add8Bit(mul8Bit(AH(), 10), AL());
+				AX = add8Bit(static_cast<std::uint8_t>(mul8Bit(AH(), 10)), AL());
 				break;
 			default:
 				interrupt(Interrupts::s_UD);
@@ -1291,8 +1307,8 @@ public:
 		}
 		case 0b11'00'00'01: // Shift/Rotate 16 bit Reg/Mem by imm8
 		{
-			ModRM         modrm = pullIPModRM();
-			std::uint16_t imm   = pullIPImm16();
+			ModRM        modrm = pullIPModRM();
+			std::uint8_t imm   = pullIPImm8();
 			switch (modrm.reg)
 			{
 			case 0b000: // ROL
@@ -2309,6 +2325,13 @@ public:
 			return;
 		}
 		}
+
+		if (singleStep)
+		{
+			interrupt(Interrupts::s_DB);
+			return;
+		}
+		++totalInstructions;
 	}
 
 	std::uint8_t add8Bit(std::uint8_t a, std::uint8_t b)
@@ -2453,7 +2476,7 @@ public:
 			interrupt(Interrupts::s_DE);
 			return 0;
 		}
-		return (temp & 0xFF) | ((AX % b) << 8);
+		return (temp & 0xFF) | ((a % b) << 8);
 	}
 
 	std::uint16_t idiv8Bit(std::uint16_t a, std::uint8_t b)
@@ -2464,13 +2487,13 @@ public:
 			return 0;
 		}
 
-		std::uint16_t temp = static_cast<std::uint16_t>(static_cast<std::int16_t>(AX) / b);
+		std::uint16_t temp = static_cast<std::uint16_t>(static_cast<std::int16_t>(a) / b);
 		if (temp > 0x7F || temp < 0x80)
 		{
 			interrupt(Interrupts::s_DE);
-			return;
+			return 0;
 		}
-		return static_cast<std::uint8_t>(temp) | (static_cast<std::uint16_t>(static_cast<std::int16_t>(AX) % b) << 8);
+		return static_cast<std::uint8_t>(temp) | (static_cast<std::uint16_t>(static_cast<std::int16_t>(a) % b) << 8);
 	}
 
 	std::uint32_t div16Bit(std::uint16_t a, std::uint16_t b, std::uint16_t c)
@@ -2482,13 +2505,13 @@ public:
 		}
 
 		std::uint32_t aa   = static_cast<std::uint32_t>(b) << 16 | a;
-		std::uint32_t temp = aa / b;
+		std::uint32_t temp = aa / c;
 		if (temp > 0xFFFF)
 		{
 			interrupt(Interrupts::s_DE);
 			return 0;
 		}
-		return (temp & 0xFFFF) | ((aa % b) << 16);
+		return (temp & 0xFFFF) | ((aa % c) << 16);
 	}
 
 	std::uint32_t idiv16Bit(std::uint16_t a, std::uint16_t b, std::uint16_t c)
@@ -2500,13 +2523,13 @@ public:
 		}
 
 		std::uint32_t aa   = static_cast<std::uint32_t>(b) << 16 | a;
-		std::uint32_t temp = static_cast<std::uint32_t>(static_cast<std::int32_t>(aa) / b);
+		std::uint32_t temp = static_cast<std::uint32_t>(static_cast<std::int32_t>(aa) / c);
 		if (temp > 0x7FFF || temp < 0x8000)
 		{
 			interrupt(Interrupts::s_DE);
-			return;
+			return 0;
 		}
-		return temp | (static_cast<std::uint32_t>(static_cast<std::int32_t>(aa) % b) << 16);
+		return temp | (static_cast<std::uint32_t>(static_cast<std::int32_t>(aa) % c) << 16);
 	}
 
 	std::uint8_t rol8Bit(std::uint8_t a, std::uint8_t count)
@@ -2669,15 +2692,8 @@ public:
 		return r;
 	}
 
-	std::uint8_t not8Bit(std::uint8_t a)
-	{
-		return ~a;
-	}
-
-	std::uint16_t not16Bit(std::uint16_t a)
-	{
-		return ~a;
-	}
+	std::uint8_t  not8Bit(std::uint8_t a) { return ~a; }
+	std::uint16_t not16Bit(std::uint16_t a) { return ~a; }
 
 	void cmp8Bit(std::uint8_t a, std::uint8_t b)
 	{
@@ -2721,11 +2737,8 @@ public:
 
 	void interrupt(std::uint16_t interrupt)
 	{
-		Interrupt = interrupt;
-
 		// TODO: Find interrupt handler, for the time being we'll assume the os doesn't set an interrupt handler. All interrupts can potentially crash the system.
-		HandleInterrupt = false;
-		if (HandleInterrupt)
+		if (false)
 		{
 			push16Bit(F);
 			push16Bit(CS);
@@ -2735,9 +2748,13 @@ public:
 			CS = 0;
 			IP = 0;
 		}
+		else
+		{
+			Interrupt = interrupt;
+		}
 	}
 
-	std::uint16_t segmentOverride(std::uint8_t so, std::uint32_t def)
+	std::uint16_t segmentOverride(std::uint8_t so, std::uint16_t def)
 	{
 		switch (so)
 		{
@@ -2766,12 +2783,22 @@ public:
 
 	void push16Bit(std::uint16_t value)
 	{
+		if (SP < 2)
+		{
+			interrupt(Interrupts::s_OF);
+			return;
+		}
 		SP -= 2;
 		write16Bit((SS << 4) + SP, value);
 	}
 
 	std::uint16_t pop16Bit()
 	{
+		if (SP > 0xFFFD)
+		{
+			interrupt(Interrupts::s_OF);
+			return 0;
+		}
 		std::uint16_t value = read16Bit((SS << 4) + SP);
 		SP += 2;
 		return value;
@@ -2904,7 +2931,7 @@ public:
 	void setZF(bool value) { F = F & ~(1 << 6) | (value << 6); }
 	void setAF(bool value) { F = F & ~(1 << 4) | (value << 4); }
 	void setPF(bool value) { F = F & ~(1 << 2) | (value << 2); }
-	void setCF(bool value) { F = F & ~1 | value; }
+	void setCF(bool value) { F = F & ~(1 << 0) | (value << 0); }
 
 	void writeRM8Bit(ModRM modrm, std::uint8_t value, std::uint8_t so)
 	{
@@ -3038,6 +3065,8 @@ public:
 	}
 	std::uint32_t EIP() const { return (static_cast<std::uint32_t>(CS) << 4) + IP; }
 
+	float IPS() const { return totalInstructions / std::chrono::duration_cast<std::chrono::duration<float>>(end - start).count(); }
+
 	std::uint16_t AX = 0;
 	std::uint16_t DX = 0;
 	std::uint16_t CX = 0;
@@ -3055,13 +3084,16 @@ public:
 	std::uint16_t F  = 0;
 	std::uint16_t IP = 0;
 
-	std::uint16_t Interrupt       = 0;
-	bool          HandleInterrupt = false;
-	bool          Halt            = false;
+	std::uint16_t Interrupt = 0;
+	bool          Halt      = false;
 
 	std::uint8_t memory[1048576] { 0 };
 
 	std::uint8_t icmemory[0xDF] { 0 };
+
+	std::chrono::system_clock::time_point start;
+	std::chrono::system_clock::time_point end;
+	std::size_t                           totalInstructions;
 };
 
 int main(int argc, char** argv)
@@ -3085,17 +3117,19 @@ int main(int argc, char** argv)
 		float time = std::chrono::duration_cast<std::chrono::duration<float>>(end - start).count();
 		if (cpu->Interrupt == 0)
 		{
-			std::cout << "Run " << run << ": Successful execution in " << time << " seconds\n";
+			std::cout << "Run " << run << ": Successful execution in " << time << " seconds, IPS: " << cpu->IPS() << '\n';
 			std::ofstream file { "os_" + std::to_string(run) + ".bin", std::ios::binary };
 			if (file)
 			{
 				file.write(reinterpret_cast<char*>(drive), sizeof(drive));
 				file.close();
 			}
+			using namespace std::chrono_literals;
+			std::this_thread::sleep_for(0.5s);
 		}
 		else
 		{
-			std::cout << "Run " << run << ": Unsuccessful execution in " << time << " seconds, Interrupt=" << cpu->Interrupt << '\n';
+			std::cout << "Run " << run << ": Unsuccessful execution in " << time << " seconds, Interrupt=" << cpu->Interrupt << ", IPS: " << cpu->IPS() << '\n';
 		}
 
 		++run;

@@ -58,5 +58,3 @@ default rel
 %endmacro
 
 %endif
-
-%endif
