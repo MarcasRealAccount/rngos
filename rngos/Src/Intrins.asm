@@ -199,19 +199,6 @@ section .text:
 		mov ax, cx
 		ret
 
-	GlobalLabel rngos_intrin_not8_f ; cl => a, rdx => pFlags
-		not cl
-		pushfq
-		pop [rdx]
-		mov al, cl
-		ret
-	GlobalLabel rngos_intrin_not16_f ; cx => a, rdx => pFlags
-		not cx
-		pushfq
-		pop [rdx]
-		mov ax, cx
-		ret
-
 	GlobalLabel rngos_intrin_cmp8_f ; cl => a, dl => b, r8 => pFlags
 		cmp cl, dl
 		pushfq

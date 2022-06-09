@@ -42,36 +42,16 @@ extern "C" std::uint16_t rngos_intrin_or16_f(std::uint16_t a, std::uint8_t b, st
 extern "C" std::uint8_t  rngos_intrin_xor8_f(std::uint8_t a, std::uint8_t b, std::uint64_t* pFlags);
 extern "C" std::uint16_t rngos_intrin_xor16_f(std::uint16_t a, std::uint8_t b, std::uint64_t* pFlags);
 
-extern "C" std::uint8_t  rngos_intrin_not8_f(std::uint8_t a, std::uint64_t* pFlags);
-extern "C" std::uint16_t rngos_intrin_not16_f(std::uint16_t a, std::uint64_t* pFlags);
-
 extern "C" void rngos_intrin_cmp8_f(std::uint8_t a, std::uint8_t b, std::uint64_t* pFlags);
 extern "C" void rngos_intrin_cmp16_f(std::uint16_t a, std::uint16_t b, std::uint64_t* pFlags);
 
 namespace Interrupts
 {
-	static constexpr std::uint16_t s_DE  = 0;
-	static constexpr std::uint16_t s_DB  = 1;
-	static constexpr std::uint16_t s_NMI = 2;
-	static constexpr std::uint16_t s_BP  = 3;
-	static constexpr std::uint16_t s_OF  = 4;
-	static constexpr std::uint16_t s_BR  = 5;
-	static constexpr std::uint16_t s_UD  = 6;
-	static constexpr std::uint16_t s_NM  = 7;
-	static constexpr std::uint16_t s_DF  = 8;
-	static constexpr std::uint16_t s_TS  = 10;
-	static constexpr std::uint16_t s_NP  = 11;
-	static constexpr std::uint16_t s_SS  = 12;
-	static constexpr std::uint16_t s_GP  = 13;
-	static constexpr std::uint16_t s_PF  = 14;
-	static constexpr std::uint16_t s_MF  = 16;
-	static constexpr std::uint16_t s_AC  = 17;
-	static constexpr std::uint16_t s_MC  = 18;
-	static constexpr std::uint16_t s_XF  = 19;
-	static constexpr std::uint16_t s_CP  = 21;
-	static constexpr std::uint16_t s_HV  = 28;
-	static constexpr std::uint16_t s_VC  = 29;
-	static constexpr std::uint16_t s_SX  = 30;
+	static constexpr std::uint16_t s_DE = 0;
+	static constexpr std::uint16_t s_BP = 3;
+	static constexpr std::uint16_t s_OF = 4;
+	static constexpr std::uint16_t s_BR = 5;
+	static constexpr std::uint16_t s_UD = 6;
 } // namespace Interrupts
 
 std::mt19937_64 s_RNG { std::random_device {}() };
@@ -1214,412 +1194,130 @@ public:
 		}
 		case 0b11'01'00'10: // Shift/Rotate 8 bit Reg/Mem by CL
 		{
-			ModRM modrm = std::bit_cast<ModRM>(memory[EIP()]);
-			++IP;
-
+			ModRM modrm = pullIPModRM();
 			switch (modrm.reg)
 			{
 			case 0b000: // ROL
-				switch (modrm.mod)
-				{
-				case 0b11: // Reg
-					setReg8Bit(modrm.rm, rol8Bit(reg8Bit(modrm.rm), CL()));
-					break;
-				default: // Mem
-				{
-					std::uint32_t ra = realAddress(modrm, so);
-					write8Bit(ra, rol8Bit(read8Bit(ra), CL()));
-					break;
-				}
-				}
+				writeRM8Bit(modrm, rol8Bit(readRM8Bit(modrm, so), CL()), so);
 				break;
 			case 0b001: // ROR
-				switch (modrm.mod)
-				{
-				case 0b11: // Reg
-					setReg8Bit(modrm.rm, ror8Bit(reg8Bit(modrm.rm), CL()));
-					break;
-				default: // Mem
-				{
-					std::uint32_t ra = realAddress(modrm, so);
-					write8Bit(ra, ror8Bit(read8Bit(ra), CL()));
-					break;
-				}
-				}
+				writeRM8Bit(modrm, ror8Bit(readRM8Bit(modrm, so), CL()), so);
 				break;
 			case 0b010: // RCL
-				switch (modrm.mod)
-				{
-				case 0b11: // Reg
-					setReg8Bit(modrm.rm, rcl8Bit(reg8Bit(modrm.rm), CL()));
-					break;
-				default: // Mem
-				{
-					std::uint32_t ra = realAddress(modrm, so);
-					write8Bit(ra, rcl8Bit(read8Bit(ra), CL()));
-					break;
-				}
-				}
+				writeRM8Bit(modrm, rcl8Bit(readRM8Bit(modrm, so), CL()), so);
 				break;
 			case 0b011: // RCR
-				switch (modrm.mod)
-				{
-				case 0b11: // Reg
-					setReg8Bit(modrm.rm, rcr8Bit(reg8Bit(modrm.rm), CL()));
-					break;
-				default: // Mem
-				{
-					std::uint32_t ra = realAddress(modrm, so);
-					write8Bit(ra, rcr8Bit(read8Bit(ra), CL()));
-					break;
-				}
-				}
+				writeRM8Bit(modrm, rcr8Bit(readRM8Bit(modrm, so), CL()), so);
 				break;
 			case 0b100: // SHL/SAL
-				switch (modrm.mod)
-				{
-				case 0b11: // Reg
-					setReg8Bit(modrm.rm, shl8Bit(reg8Bit(modrm.rm), CL()));
-					break;
-				default: // Mem
-				{
-					std::uint32_t ra = realAddress(modrm, so);
-					write8Bit(ra, shl8Bit(read8Bit(ra), CL()));
-					break;
-				}
-				}
+				writeRM8Bit(modrm, shl8Bit(readRM8Bit(modrm, so), CL()), so);
 				break;
 			case 0b101: // SHR
-				switch (modrm.mod)
-				{
-				case 0b11: // Reg
-					setReg8Bit(modrm.rm, shr8Bit(reg8Bit(modrm.rm), CL()));
-					break;
-				default: // Mem
-				{
-					std::uint32_t ra = realAddress(modrm, so);
-					write8Bit(ra, shr8Bit(read8Bit(ra), CL()));
-					break;
-				}
-				}
+				writeRM8Bit(modrm, shr8Bit(readRM8Bit(modrm, so), CL()), so);
 				break;
 			case 0b111: // SAR
-				switch (modrm.mod)
-				{
-				case 0b11: // Reg
-					setReg8Bit(modrm.rm, sar8Bit(reg8Bit(modrm.rm), CL()));
-					break;
-				default: // Mem
-				{
-					std::uint32_t ra = realAddress(modrm, so);
-					write8Bit(ra, sar8Bit(read8Bit(ra), CL()));
-					break;
-				}
-				}
+				writeRM8Bit(modrm, sar8Bit(readRM8Bit(modrm, so), CL()), so);
 				break;
 			default:
-				interrupt(s_InvalidInstruction);
+				interrupt(Interrupts::s_UD);
 				return;
 			}
 			break;
 		}
 		case 0b11'01'00'11: // Shift/Rotate 16 bit Reg/Mem by CL
 		{
-			ModRM modrm = std::bit_cast<ModRM>(memory[EIP()]);
-			++IP;
-
+			ModRM modrm = pullIPModRM();
 			switch (modrm.reg)
 			{
 			case 0b000: // ROL
-				switch (modrm.mod)
-				{
-				case 0b11: // Reg
-					setReg16Bit(modrm.rm, rol16Bit(reg16Bit(modrm.rm), CL()));
-					break;
-				default: // Mem
-				{
-					std::uint32_t ra = realAddress(modrm, so);
-					write16Bit(ra, rol8Bit(read16Bit(ra), CL()));
-					break;
-				}
-				}
+				writeRM16Bit(modrm, rol16Bit(readRM16Bit(modrm, so), CL()), so);
 				break;
 			case 0b001: // ROR
-				switch (modrm.mod)
-				{
-				case 0b11: // Reg
-					setReg16Bit(modrm.rm, ror16Bit(reg16Bit(modrm.rm), CL()));
-					break;
-				default: // Mem
-				{
-					std::uint32_t ra = realAddress(modrm, so);
-					write16Bit(ra, ror16Bit(read16Bit(ra), CL()));
-					break;
-				}
-				}
+				writeRM16Bit(modrm, ror16Bit(readRM16Bit(modrm, so), CL()), so);
 				break;
 			case 0b010: // RCL
-				switch (modrm.mod)
-				{
-				case 0b11: // Reg
-					setReg16Bit(modrm.rm, rcl16Bit(reg16Bit(modrm.rm), CL()));
-					break;
-				default: // Mem
-				{
-					std::uint32_t ra = realAddress(modrm, so);
-					write16Bit(ra, rcl16Bit(read16Bit(ra), CL()));
-					break;
-				}
-				}
+				writeRM16Bit(modrm, rcl16Bit(readRM16Bit(modrm, so), CL()), so);
 				break;
 			case 0b011: // RCR
-				switch (modrm.mod)
-				{
-				case 0b11: // Reg
-					setReg16Bit(modrm.rm, rcr16Bit(reg16Bit(modrm.rm), CL()));
-					break;
-				default: // Mem
-				{
-					std::uint32_t ra = realAddress(modrm, so);
-					write16Bit(ra, rcr16Bit(read16Bit(ra), CL()));
-					break;
-				}
-				}
+				writeRM16Bit(modrm, rcr16Bit(readRM16Bit(modrm, so), CL()), so);
 				break;
 			case 0b100: // SHL/SAL
-				switch (modrm.mod)
-				{
-				case 0b11: // Reg
-					setReg16Bit(modrm.rm, shl16Bit(reg16Bit(modrm.rm), CL()));
-					break;
-				default: // Mem
-				{
-					std::uint32_t ra = realAddress(modrm, so);
-					write16Bit(ra, shl16Bit(read16Bit(ra), CL()));
-					break;
-				}
-				}
+				writeRM16Bit(modrm, shl16Bit(readRM16Bit(modrm, so), CL()), so);
 				break;
 			case 0b101: // SHR
-				switch (modrm.mod)
-				{
-				case 0b11: // Reg
-					setReg16Bit(modrm.rm, shr16Bit(reg16Bit(modrm.rm), CL()));
-					break;
-				default: // Mem
-				{
-					std::uint32_t ra = realAddress(modrm, so);
-					write16Bit(ra, shr16Bit(read16Bit(ra), CL()));
-					break;
-				}
-				}
+				writeRM16Bit(modrm, shr16Bit(readRM16Bit(modrm, so), CL()), so);
 				break;
 			case 0b111: // SAR
-				switch (modrm.mod)
-				{
-				case 0b11: // Reg
-					setReg16Bit(modrm.rm, sar16Bit(reg16Bit(modrm.rm), CL()));
-					break;
-				default: // Mem
-				{
-					std::uint32_t ra = realAddress(modrm, so);
-					write16Bit(ra, sar16Bit(read16Bit(ra), CL()));
-					break;
-				}
-				}
+				writeRM16Bit(modrm, sar16Bit(readRM16Bit(modrm, so), CL()), so);
 				break;
 			default:
-				interrupt(s_InvalidInstruction);
+				interrupt(Interrupts::s_UD);
 				return;
 			}
 			break;
 		}
 		case 0b11'00'00'00: // Shift/Rotate 8 bit Reg/Mem by Imm8
 		{
-			ModRM modrm = std::bit_cast<ModRM>(memory[EIP()]);
-			++IP;
-
-			std::uint32_t ra = realAddress(modrm, so);
-
-			std::uint8_t imm = memory[EIP()];
-			++IP;
-
+			ModRM        modrm = pullIPModRM();
+			std::uint8_t imm   = pullIPImm8();
 			switch (modrm.reg)
 			{
 			case 0b000: // ROL
-				switch (modrm.mod)
-				{
-				case 0b11: // Reg
-					setReg8Bit(modrm.rm, rol8Bit(reg8Bit(modrm.rm), imm));
-					break;
-				default: // Mem
-					write8Bit(ra, rol8Bit(read8Bit(ra), imm));
-					break;
-				}
+				writeRM8Bit(modrm, rol8Bit(readRM8Bit(modrm, so), imm), so);
 				break;
 			case 0b001: // ROR
-				switch (modrm.mod)
-				{
-				case 0b11: // Reg
-					setReg8Bit(modrm.rm, ror8Bit(reg8Bit(modrm.rm), imm));
-					break;
-				default: // Mem
-					write8Bit(ra, ror8Bit(read8Bit(ra), imm));
-					break;
-				}
+				writeRM8Bit(modrm, ror8Bit(readRM8Bit(modrm, so), imm), so);
 				break;
 			case 0b010: // RCL
-				switch (modrm.mod)
-				{
-				case 0b11: // Reg
-					setReg8Bit(modrm.rm, rcl8Bit(reg8Bit(modrm.rm), imm));
-					break;
-				default: // Mem
-					write8Bit(ra, rcl8Bit(read8Bit(ra), imm));
-					break;
-				}
+				writeRM8Bit(modrm, rcl8Bit(readRM8Bit(modrm, so), imm), so);
 				break;
 			case 0b011: // RCR
-				switch (modrm.mod)
-				{
-				case 0b11: // Reg
-					setReg8Bit(modrm.rm, rcr8Bit(reg8Bit(modrm.rm), imm));
-					break;
-				default: // Mem
-					write8Bit(ra, rcr8Bit(read8Bit(ra), imm));
-					break;
-				}
+				writeRM8Bit(modrm, rcr8Bit(readRM8Bit(modrm, so), imm), so);
 				break;
 			case 0b100: // SHL/SAL
-				switch (modrm.mod)
-				{
-				case 0b11: // Reg
-					setReg8Bit(modrm.rm, shl8Bit(reg8Bit(modrm.rm), imm));
-					break;
-				default: // Mem
-					write8Bit(ra, shl8Bit(read8Bit(ra), imm));
-					break;
-				}
+				writeRM8Bit(modrm, shl8Bit(readRM8Bit(modrm, so), imm), so);
 				break;
 			case 0b101: // SHR
-				switch (modrm.mod)
-				{
-				case 0b11: // Reg
-					setReg8Bit(modrm.rm, shr8Bit(reg8Bit(modrm.rm), imm));
-					break;
-				default: // Mem
-					write8Bit(ra, shr8Bit(read8Bit(ra), imm));
-					break;
-				}
+				writeRM8Bit(modrm, shr8Bit(readRM8Bit(modrm, so), imm), so);
 				break;
 			case 0b111: // SAR
-				switch (modrm.mod)
-				{
-				case 0b11: // Reg
-					setReg8Bit(modrm.rm, sar8Bit(reg8Bit(modrm.rm), imm));
-					break;
-				default: // Mem
-					write8Bit(ra, sar8Bit(read8Bit(ra), imm));
-					break;
-				}
+				writeRM8Bit(modrm, sar8Bit(readRM8Bit(modrm, so), imm), so);
 				break;
 			default:
-				interrupt(s_InvalidInstruction);
+				interrupt(Interrupts::s_UD);
 				return;
 			}
 			break;
 		}
 		case 0b11'00'00'01: // Shift/Rotate 16 bit Reg/Mem by imm8
 		{
-			ModRM modrm = std::bit_cast<ModRM>(memory[EIP()]);
-			++IP;
-
-			std::uint32_t ra = realAddress(modrm, so);
-
-			std::uint8_t imm = memory[EIP()];
-			++IP;
-
+			ModRM         modrm = pullIPModRM();
+			std::uint16_t imm   = pullIPImm16();
 			switch (modrm.reg)
 			{
 			case 0b000: // ROL
-				switch (modrm.mod)
-				{
-				case 0b11: // Reg
-					setReg16Bit(modrm.rm, rol16Bit(reg16Bit(modrm.rm), imm));
-					break;
-				default: // Mem
-					write16Bit(ra, rol8Bit(read16Bit(ra), imm));
-					break;
-				}
+				writeRM16Bit(modrm, rol16Bit(readRM16Bit(modrm, so), imm), so);
 				break;
 			case 0b001: // ROR
-				switch (modrm.mod)
-				{
-				case 0b11: // Reg
-					setReg16Bit(modrm.rm, ror16Bit(reg16Bit(modrm.rm), imm));
-					break;
-				default: // Mem
-					write16Bit(ra, ror16Bit(read16Bit(ra), imm));
-					break;
-				}
+				writeRM16Bit(modrm, ror16Bit(readRM16Bit(modrm, so), imm), so);
 				break;
 			case 0b010: // RCL
-				switch (modrm.mod)
-				{
-				case 0b11: // Reg
-					setReg16Bit(modrm.rm, rcl16Bit(reg16Bit(modrm.rm), imm));
-					break;
-				default: // Mem
-					write16Bit(ra, rcl16Bit(read16Bit(ra), imm));
-					break;
-				}
+				writeRM16Bit(modrm, rcl16Bit(readRM16Bit(modrm, so), imm), so);
 				break;
 			case 0b011: // RCR
-				switch (modrm.mod)
-				{
-				case 0b11: // Reg
-					setReg16Bit(modrm.rm, rcr16Bit(reg16Bit(modrm.rm), imm));
-					break;
-				default: // Mem
-					write16Bit(ra, rcr16Bit(read16Bit(ra), imm));
-					break;
-				}
+				writeRM16Bit(modrm, rcr16Bit(readRM16Bit(modrm, so), imm), so);
 				break;
 			case 0b100: // SHL/SAL
-				switch (modrm.mod)
-				{
-				case 0b11: // Reg
-					setReg16Bit(modrm.rm, shl16Bit(reg16Bit(modrm.rm), imm));
-					break;
-				default: // Mem
-					write16Bit(ra, shl16Bit(read16Bit(ra), imm));
-					break;
-				}
+				writeRM16Bit(modrm, shl16Bit(readRM16Bit(modrm, so), imm), so);
 				break;
 			case 0b101: // SHR
-				switch (modrm.mod)
-				{
-				case 0b11: // Reg
-					setReg16Bit(modrm.rm, shr16Bit(reg16Bit(modrm.rm), imm));
-					break;
-				default: // Mem
-					write16Bit(ra, shr16Bit(read16Bit(ra), imm));
-					break;
-				}
+				writeRM16Bit(modrm, shr16Bit(readRM16Bit(modrm, so), imm), so);
 				break;
 			case 0b111: // SAR
-				switch (modrm.mod)
-				{
-				case 0b11: // Reg
-					setReg16Bit(modrm.rm, sar16Bit(reg16Bit(modrm.rm), imm));
-					break;
-				default: // Mem
-					write16Bit(ra, sar16Bit(read16Bit(ra), imm));
-					break;
-				}
+				writeRM16Bit(modrm, sar16Bit(readRM16Bit(modrm, so), imm), so);
 				break;
 			default:
-				interrupt(s_InvalidInstruction);
+				interrupt(Interrupts::s_UD);
 				return;
 			}
 			break;
@@ -1628,322 +1326,132 @@ public:
 		// AND
 		case 0b00'10'00'00: // AND 8 bit Reg with Reg/Mem
 		{
-			ModRM modrm = std::bit_cast<ModRM>(memory[EIP()]);
-			++IP;
-
-			switch (modrm.mod)
-			{
-			case 0b11: // Reg with Reg
-				setReg8Bit(modrm.rm, and8Bit(reg8Bit(modrm.rm), reg8Bit(modrm.reg)));
-				break;
-			default: // Reg with Mem
-			{
-				std::uint32_t ra = realAddress(modrm, so);
-				write8Bit(ra, and8Bit(read8Bit(ra), reg8Bit(modrm.reg)));
-				break;
-			}
-			}
+			ModRM modrm = pullIPModRM();
+			writeRM8Bit(modrm, and8Bit(readRM8Bit(modrm, so), reg8Bit(modrm.reg)), so);
 			break;
 		}
 		case 0b00'10'00'01: // AND 16 bit Reg with Reg/Mem
 		{
-			ModRM modrm = std::bit_cast<ModRM>(memory[EIP()]);
-			++IP;
-
-			switch (modrm.mod)
-			{
-			case 0b11: // Reg with Reg
-				setReg16Bit(modrm.rm, and16Bit(reg16Bit(modrm.rm), reg16Bit(modrm.reg)));
-				break;
-			default: // Reg with Mem
-			{
-				std::uint32_t ra = realAddress(modrm, so);
-				write16Bit(ra, and16Bit(read16Bit(ra), reg16Bit(modrm.reg)));
-				break;
-			}
-			}
+			ModRM modrm = pullIPModRM();
+			writeRM16Bit(modrm, and16Bit(readRM16Bit(modrm, so), reg16Bit(modrm.reg)), so);
 			break;
 		}
 		case 0b00'10'00'10: // AND 8 bit Reg/Mem with Reg
 		{
-			ModRM modrm = std::bit_cast<ModRM>(memory[EIP()]);
-			++IP;
-
-			switch (modrm.mod)
-			{
-			case 0b11: // Reg with Reg
-				setReg8Bit(modrm.reg, and8Bit(reg8Bit(modrm.reg), reg8Bit(modrm.rm)));
-				break;
-			default: // Mem with Reg
-				setReg8Bit(modrm.reg, and8Bit(reg8Bit(modrm.reg), read8Bit(realAddress(modrm, so))));
-				break;
-			}
+			ModRM modrm = pullIPModRM();
+			setReg8Bit(modrm.reg, and8Bit(reg8Bit(modrm.reg), readRM8Bit(modrm, so)));
 			break;
 		}
 		case 0b00'10'00'11: // AND 16 bit Reg/Mem with Reg
 		{
-			ModRM modrm = std::bit_cast<ModRM>(memory[EIP()]);
-			++IP;
-
-			switch (modrm.mod)
-			{
-			case 0b11: // Reg with Reg
-				setReg16Bit(modrm.reg, and16Bit(reg16Bit(modrm.reg), reg16Bit(modrm.rm)));
-				break;
-			default: // Mem with Reg
-				setReg16Bit(modrm.reg, and16Bit(reg16Bit(modrm.reg), read16Bit(realAddress(modrm, so))));
-				break;
-			}
+			ModRM modrm = pullIPModRM();
+			setReg16Bit(modrm.reg, and16Bit(reg16Bit(modrm.reg), readRM16Bit(modrm, so)));
 			break;
 		}
 		case 0b00'10'01'00: // AND 8 bit imm with AL
 		{
-			std::uint8_t imm = memory[EIP()];
-			++IP;
-
-			AX = and8Bit(AL(), imm);
+			AX = and8Bit(AL(), pullIPImm8());
 			break;
 		}
 		case 0b00'10'01'01: // AND 16 bit imm with AX
 		{
-			std::uint16_t imm = memory[EIP()] << 8;
-			++IP;
-			imm |= memory[EIP()];
-			++IP;
-
-			AX = and16Bit(AX, imm);
+			AX = and16Bit(AX, pullIPImm16());
 			break;
 		}
 
 		// TEST
 		case 0b10'00'01'00: // TEST 8 bit Reg with Reg/Mem
 		{
-			ModRM modrm = std::bit_cast<ModRM>(memory[EIP()]);
-			++IP;
-
-			switch (modrm.mod)
-			{
-			case 0b11: // Reg with Reg
-				and8Bit(reg8Bit(modrm.rm), reg8Bit(modrm.reg));
-				break;
-			default: // Reg with Mem
-				and8Bit(read8Bit(realAddress(modrm, so)), reg8Bit(modrm.reg));
-				break;
-			}
+			ModRM modrm = pullIPModRM();
+			and8Bit(readRM8Bit(modrm, so), reg8Bit(modrm.reg));
 			break;
 		}
 		case 0b10'00'01'01: // TEST 16 bit Reg with Reg/Mem
 		{
-			ModRM modrm = std::bit_cast<ModRM>(memory[EIP()]);
-			++IP;
-
-			switch (modrm.mod)
-			{
-			case 0b11: // Reg with Reg
-				and16Bit(reg16Bit(modrm.rm), reg16Bit(modrm.reg));
-				break;
-			default: // Reg with Mem
-				and16Bit(read16Bit(realAddress(modrm, so)), reg16Bit(modrm.reg));
-				break;
-			}
+			ModRM modrm = pullIPModRM();
+			and16Bit(readRM16Bit(modrm, so), reg16Bit(modrm.reg));
 			break;
 		}
 		case 0b10'10'10'00: // TEST 8 bit with AL
 		{
-			std::uint8_t imm = memory[EIP()];
-			++IP;
-
-			and8Bit(AL(), imm);
+			and8Bit(AL(), pullIPImm8());
 			break;
 		}
 		case 0b10'10'10'01: // TEST 16 bit with AX
 		{
-			std::uint16_t imm = memory[EIP()] << 8;
-			++IP;
-			imm |= memory[EIP()];
-			++IP;
-
-			and16Bit(AX, imm);
+			and16Bit(AX, pullIPImm16());
 			break;
 		}
 
 		// OR
 		case 0b00'00'10'00: // OR 8 bit Reg with Reg/Mem
 		{
-			ModRM modrm = std::bit_cast<ModRM>(memory[EIP()]);
-			++IP;
-
-			switch (modrm.mod)
-			{
-			case 0b11: // Reg with Reg
-				setReg8Bit(modrm.rm, or8Bit(reg8Bit(modrm.rm), reg8Bit(modrm.reg)));
-				break;
-			default: // Reg with Mem
-			{
-				std::uint32_t ra = realAddress(modrm, so);
-				write8Bit(ra, or8Bit(read8Bit(ra), reg8Bit(modrm.reg)));
-				break;
-			}
-			}
+			ModRM modrm = pullIPModRM();
+			writeRM8Bit(modrm, or8Bit(readRM8Bit(modrm, so), reg8Bit(modrm.reg)), so);
 			break;
 		}
 		case 0b00'00'10'01: // OR 16 bit Reg with Reg/Mem
 		{
-			ModRM modrm = std::bit_cast<ModRM>(memory[EIP()]);
-			++IP;
-
-			switch (modrm.mod)
-			{
-			case 0b11: // Reg with Reg
-				setReg16Bit(modrm.rm, or16Bit(reg16Bit(modrm.rm), reg16Bit(modrm.reg)));
-				break;
-			default: // Reg with Mem
-			{
-				std::uint32_t ra = realAddress(modrm, so);
-				write16Bit(ra, or16Bit(read16Bit(ra), reg16Bit(modrm.reg)));
-				break;
-			}
-			}
+			ModRM modrm = pullIPModRM();
+			writeRM16Bit(modrm, or16Bit(readRM16Bit(modrm, so), reg16Bit(modrm.reg)), so);
 			break;
 		}
 		case 0b00'00'10'10: // OR 8 bit Reg/Mem with Reg
 		{
-			ModRM modrm = std::bit_cast<ModRM>(memory[EIP()]);
-			++IP;
-
-			switch (modrm.mod)
-			{
-			case 0b11: // Reg with Reg
-				setReg8Bit(modrm.reg, or8Bit(reg8Bit(modrm.reg), reg8Bit(modrm.rm)));
-				break;
-			default: // Mem with Reg
-				setReg8Bit(modrm.reg, or8Bit(reg8Bit(modrm.reg), read8Bit(realAddress(modrm, so))));
-				break;
-			}
+			ModRM modrm = pullIPModRM();
+			setReg8Bit(modrm.reg, or8Bit(reg8Bit(modrm.reg), readRM8Bit(modrm, so)));
 			break;
 		}
 		case 0b00'00'10'11: // OR 16 bit Reg/Mem with Reg
 		{
-			ModRM modrm = std::bit_cast<ModRM>(memory[EIP()]);
-			++IP;
-
-			switch (modrm.mod)
-			{
-			case 0b11: // Reg with Reg
-				setReg16Bit(modrm.reg, or16Bit(reg16Bit(modrm.reg), reg16Bit(modrm.rm)));
-				break;
-			default: // Mem with Reg
-				setReg16Bit(modrm.reg, or16Bit(reg16Bit(modrm.reg), read16Bit(realAddress(modrm, so))));
-				break;
-			}
+			ModRM modrm = pullIPModRM();
+			setReg16Bit(modrm.reg, or16Bit(reg16Bit(modrm.reg), readRM16Bit(modrm, so)));
 			break;
 		}
 		case 0b00'00'11'00: // OR 8 bit Imm with AL
 		{
-			std::uint8_t imm = memory[EIP()];
-			++IP;
-
-			AX = or8Bit(AL(), imm);
+			AX = or8Bit(AL(), pullIPImm8());
 			break;
 		}
 		case 0b00'00'11'01: // OR 16 bit Imm with AL
 		{
-			std::uint16_t imm = memory[EIP()] << 8;
-			++IP;
-			imm |= memory[EIP()];
-			++IP;
-
-			AX = or16Bit(AX, imm);
+			AX = or16Bit(AX, pullIPImm16());
 			break;
 		}
 
 		// XOR
 		case 0b00'11'00'00: // XOR 8 bit Reg with Reg/Mem
 		{
-			ModRM modrm = std::bit_cast<ModRM>(memory[EIP()]);
-			++IP;
-
-			switch (modrm.mod)
-			{
-			case 0b11: // Reg with Reg
-				setReg8Bit(modrm.rm, xor8Bit(reg8Bit(modrm.rm), reg8Bit(modrm.reg)));
-				break;
-			default: // Reg with Mem
-			{
-				std::uint32_t ra = realAddress(modrm, so);
-				write8Bit(ra, xor8Bit(read8Bit(ra), reg8Bit(modrm.reg)));
-				break;
-			}
-			}
+			ModRM modrm = pullIPModRM();
+			writeRM8Bit(modrm, xor8Bit(readRM8Bit(modrm, so), reg8Bit(modrm.reg)), so);
 			break;
 		}
 		case 0b00'11'00'01: // XOR 16 bit Reg with Reg/Mem
 		{
-			ModRM modrm = std::bit_cast<ModRM>(memory[EIP()]);
-			++IP;
-
-			switch (modrm.mod)
-			{
-			case 0b11: // Reg with Reg
-				setReg16Bit(modrm.rm, xor16Bit(reg16Bit(modrm.rm), reg16Bit(modrm.reg)));
-				break;
-			default: // Reg with Mem
-			{
-				std::uint32_t ra = realAddress(modrm, so);
-				write16Bit(ra, xor16Bit(read16Bit(ra), reg16Bit(modrm.reg)));
-				break;
-			}
-			}
+			ModRM modrm = pullIPModRM();
+			writeRM16Bit(modrm, xor16Bit(readRM16Bit(modrm, so), reg16Bit(modrm.reg)), so);
 			break;
 		}
 		case 0b00'11'00'10: // XOR 8 bit Reg/Mem with Reg
 		{
-			ModRM modrm = std::bit_cast<ModRM>(memory[EIP()]);
-			++IP;
-
-			switch (modrm.mod)
-			{
-			case 0b11: // Reg with Reg
-				setReg8Bit(modrm.reg, xor8Bit(reg8Bit(modrm.reg), reg8Bit(modrm.rm)));
-				break;
-			default: // Mem with Reg
-				setReg8Bit(modrm.reg, xor8Bit(reg8Bit(modrm.reg), read8Bit(realAddress(modrm, so))));
-				break;
-			}
+			ModRM modrm = pullIPModRM();
+			setReg8Bit(modrm.reg, xor8Bit(reg8Bit(modrm.reg), readRM8Bit(modrm, so)));
 			break;
 		}
 		case 0b00'11'00'11: // XOR 16 bit Reg/Mem with Reg
 		{
-			ModRM modrm = std::bit_cast<ModRM>(memory[EIP()]);
-			++IP;
-
-			switch (modrm.mod)
-			{
-			case 0b11: // Reg with Reg
-				setReg16Bit(modrm.reg, xor16Bit(reg16Bit(modrm.reg), reg16Bit(modrm.rm)));
-				break;
-			default: // Mem with Reg
-				setReg16Bit(modrm.reg, xor16Bit(reg16Bit(modrm.reg), read16Bit(realAddress(modrm, so))));
-				break;
-			}
+			ModRM modrm = pullIPModRM();
+			setReg16Bit(modrm.reg, xor16Bit(reg16Bit(modrm.reg), readRM16Bit(modrm, so)));
 			break;
 		}
 		case 0b00'11'01'00: // XOR 8 bit Imm with AL
 		{
-			std::uint8_t imm = memory[EIP()];
-			++IP;
-
-			AX = xor8Bit(AL(), imm);
+			AX = xor8Bit(AL(), pullIPImm8());
 			break;
 		}
 		case 0b00'11'01'01: // XOR 16 bit Imm with AX
 		{
-			std::uint16_t imm = memory[EIP()] << 8;
-			++IP;
-			imm |= memory[EIP()];
-			++IP;
-
-			AX = xor16Bit(AX, imm);
+			AX = xor16Bit(AX, pullIPImm16());
 			break;
 		}
 
@@ -1953,7 +1461,7 @@ public:
 			{
 				if (rep != 0b11'11'00'10)
 				{
-					interrupt(s_InvalidInstruction);
+					interrupt(Interrupts::s_UD);
 					return;
 				}
 
@@ -2003,7 +1511,7 @@ public:
 			{
 				if (rep != 0b11'11'00'10)
 				{
-					interrupt(s_InvalidInstruction);
+					interrupt(Interrupts::s_UD);
 					return;
 				}
 
@@ -2208,7 +1716,7 @@ public:
 			{
 				if (rep != 0b11'11'00'10)
 				{
-					interrupt(s_InvalidInstruction);
+					interrupt(Interrupts::s_UD);
 					return;
 				}
 
@@ -2246,7 +1754,7 @@ public:
 			{
 				if (rep != 0b11'11'00'10)
 				{
-					interrupt(s_InvalidInstruction);
+					interrupt(Interrupts::s_UD);
 					return;
 				}
 
@@ -2285,7 +1793,7 @@ public:
 			{
 				if (rep != 0b11'11'00'10)
 				{
-					interrupt(s_InvalidInstruction);
+					interrupt(Interrupts::s_UD);
 					return;
 				}
 
@@ -2323,7 +1831,7 @@ public:
 			{
 				if (rep != 0b11'11'00'10)
 				{
-					interrupt(s_InvalidInstruction);
+					interrupt(Interrupts::s_UD);
 					return;
 				}
 
@@ -2362,7 +1870,7 @@ public:
 			{
 				if (rep != 0b11'11'00'10)
 				{
-					interrupt(s_InvalidInstruction);
+					interrupt(Interrupts::s_UD);
 					return;
 				}
 
@@ -2400,7 +1908,7 @@ public:
 			{
 				if (rep != 0b11'11'00'10)
 				{
-					interrupt(s_InvalidInstruction);
+					interrupt(Interrupts::s_UD);
 					return;
 				}
 
@@ -2439,7 +1947,7 @@ public:
 			{
 				if (rep != 0b11'11'00'10)
 				{
-					interrupt(s_InvalidInstruction);
+					interrupt(Interrupts::s_UD);
 					return;
 				}
 
@@ -2477,7 +1985,7 @@ public:
 			{
 				if (rep != 0b11'11'00'10)
 				{
-					interrupt(s_InvalidInstruction);
+					interrupt(Interrupts::s_UD);
 					return;
 				}
 
@@ -2513,65 +2021,39 @@ public:
 		// CALL
 		case 0b11'10'10'00: // CALL Disp16
 		{
-			std::uint16_t disp = memory[EIP()];
-			++IP;
-			disp |= memory[EIP()] << 8;
-			++IP;
-
+			std::uint16_t disp = pullIPDisp16();
 			push16Bit(IP);
 			IP += static_cast<std::int16_t>(disp);
 			break;
 		}
 		case 0b10'01'10'10: // CALL ptr
 		{
-			std::uint16_t segmentOffset = memory[EIP()] << 8;
-			++IP;
-			segmentOffset |= memory[EIP()];
-			++IP;
-
-			std::uint16_t segmentSelector = memory[EIP()] << 8;
-			++IP;
-			segmentSelector |= memory[EIP()];
-			++IP;
-
+			std::uint16_t segmentOffset   = pullIPDisp16();
+			std::uint16_t segmentSelector = pullIPDisp16();
 			push16Bit(CS);
 			push16Bit(IP);
-			CS = segmentSelector;
 			IP = segmentOffset;
+			CS = segmentSelector;
 			break;
 		}
 
 		// JMP
 		case 0b11'10'10'11: // JMP Disp8
 		{
-			std::uint8_t disp = memory[EIP()];
-			++IP;
-			IP += static_cast<std::int8_t>(disp);
+			IP += static_cast<std::int8_t>(pullIPDisp8());
 			break;
 		}
 		case 0b11'10'10'01: // JMP Disp16
 		{
-			std::uint16_t disp = memory[EIP()];
-			++IP;
-			disp |= memory[EIP()];
-			++IP;
-			IP += static_cast<std::int16_t>(disp);
+			IP += static_cast<std::int16_t>(pullIPDisp16());
 			break;
 		}
 		case 0b11'10'10'10: // JMP ptr
 		{
-			std::uint16_t segmentOffset = memory[EIP()] << 8;
-			++IP;
-			segmentOffset |= memory[EIP()];
-			++IP;
-
-			std::uint16_t segmentSelector = memory[EIP()] << 8;
-			++IP;
-			segmentSelector |= memory[EIP()];
-			++IP;
-
-			CS = segmentSelector;
-			IP = segmentOffset;
+			std::uint16_t segmentOffset   = pullIPDisp16();
+			std::uint16_t segmentSelector = pullIPDisp16();
+			CS                            = segmentSelector;
+			IP                            = segmentOffset;
 			break;
 		}
 
@@ -2583,12 +2065,7 @@ public:
 		}
 		case 0b11'00'00'10: // RET Data16
 		{
-			std::uint16_t data = memory[EIP()];
-			++IP;
-			data |= memory[EIP()] << 8;
-			++IP;
-
-			SP += data;
+			SP += pullIPData16();
 			IP = pop16Bit();
 			break;
 		}
@@ -2600,12 +2077,7 @@ public:
 		}
 		case 0b11'00'10'10: // RET far Data16
 		{
-			std::uint16_t data = memory[EIP()];
-			++IP;
-			data |= memory[EIP()] << 8;
-			++IP;
-
-			SP += data;
+			SP += pullIPData16();
 			IP = pop16Bit();
 			CS = pop16Bit();
 			break;
@@ -2630,10 +2102,8 @@ public:
 		case 0b01'11'10'01: [[fallthrough]]; // JNS Disp8
 		case 0b11'10'00'11:                  // JCXZ Disp8
 		{
-			std::uint8_t disp = memory[EIP()];
-			++IP;
-
-			bool jump = false;
+			std::uint8_t disp = pullIPDisp8();
+			bool         jump = false;
 			switch (instruction)
 			{
 			case 0b01'11'01'00: // JE/JZ Disp8
@@ -2688,7 +2158,6 @@ public:
 				jump = CX == 0;
 				break;
 			}
-
 			if (jump)
 				IP += static_cast<std::int8_t>(disp);
 			break;
@@ -2699,12 +2168,9 @@ public:
 		case 0b11'10'00'01: [[fallthrough]]; // LOOPE Disp8
 		case 0b11'10'00'00:                  // LOOPNE Disp8
 		{
-			std::uint8_t disp = memory[EIP()];
-			++IP;
-
-			std::uint16_t count = CX - 1;
-
-			bool branchCond = false;
+			std::uint8_t  disp       = pullIPDisp8();
+			std::uint16_t count      = CX - 1;
+			bool          branchCond = false;
 			switch (instruction & 0b11)
 			{
 			case 0b10: // LOOP
@@ -2717,7 +2183,6 @@ public:
 				branchCond = !ZF() && count != 0;
 				break;
 			}
-
 			if (branchCond)
 				IP += static_cast<std::int8_t>(disp);
 			break;
@@ -2725,16 +2190,8 @@ public:
 
 		case 0b11'00'10'00: // ENTER Data16 Imm8
 		{
-			std::uint16_t data = memory[EIP()];
-			++IP;
-			data |= memory[EIP()] << 8;
-			++IP;
-
-			std::uint8_t l = memory[EIP()];
-			++IP;
-
-			l %= 32;
-
+			std::uint16_t data = pullIPData16();
+			std::uint8_t  l    = pullIPImm8() % 32;
 			push16Bit(BP);
 			std::uint16_t ft = SP;
 
@@ -2761,21 +2218,18 @@ public:
 
 		case 0b11'00'11'01: // INT imm8
 		{
-			std::uint8_t imm = memory[EIP()];
-			++IP;
-
-			interrupt(imm);
+			interrupt(pullIPImm8());
 			break;
 		}
 		case 0b11'00'11'00: // INT 3
 		{
-			interrupt(3);
+			interrupt(Interrupts::s_BP);
 			break;
 		}
 		case 0b11'00'11'10: // INTO
 		{
 			if (OF())
-				interrupt(s_OverflowException);
+				interrupt(Interrupts::s_OF);
 			break;
 		}
 		case 0b11'00'11'11: // IRET
@@ -2788,19 +2242,14 @@ public:
 
 		case 0b01'10'00'10: // BOUND Reg Mem
 		{
-			ModRM modrm = std::bit_cast<ModRM>(memory[EIP()]);
-			++IP;
-
-			std::uint32_t ra = realAddress(modrm, so);
-
-			std::uint16_t min = read16Bit(ra);
-			std::uint16_t max = read16Bit(ra + 2);
-
-			std::uint16_t ai = reg16Bit(modrm.reg);
-
+			ModRM         modrm = pullIPModRM();
+			std::uint32_t ra    = realAddress(modrm, so);
+			std::uint16_t min   = read16Bit(ra);
+			std::uint16_t max   = read16Bit(ra + 2);
+			std::uint16_t ai    = reg16Bit(modrm.reg);
 			if (ai < min || ai > max)
 			{
-				interrupt(s_ArrayBoundsException);
+				interrupt(Interrupts::s_BR);
 				return;
 			}
 			break;
@@ -2849,7 +2298,8 @@ public:
 		}
 		case 0b10'01'10'11: // WAIT
 		{
-			// TODO: Idk what to do here tbh...
+			// TODO: Idk what to do here tbh... For the time being cause an interrupt, such that we can be sure it won't cause a crash on a real machine
+			interrupt(Interrupts::s_UD);
 			break;
 		}
 
@@ -2865,7 +2315,7 @@ public:
 	{
 		std::uint64_t flags = 0;
 		std::uint8_t  r     = rngos_intrin_add8_f(a, b, &flags);
-		F                   = flags & 0xFFFF;
+		F                   = flags & 0b100011010101;
 		return r;
 	}
 
@@ -2873,7 +2323,7 @@ public:
 	{
 		std::uint64_t flags = F;
 		std::uint8_t  r     = rngos_intrin_adc8_f(a, b, &flags);
-		F                   = flags & 0xFFFF;
+		F                   = flags & 0b100011010101;
 		return r;
 	}
 
@@ -2881,7 +2331,7 @@ public:
 	{
 		std::uint64_t flags = 0;
 		std::uint16_t r     = rngos_intrin_add16_f(a, b, &flags);
-		F                   = flags & 0xFFFF;
+		F                   = flags & 0b100011010101;
 		return r;
 	}
 
@@ -2889,7 +2339,7 @@ public:
 	{
 		std::uint64_t flags = F;
 		std::uint16_t r     = rngos_intrin_adc16_f(a, b, &flags);
-		F                   = flags & 0xFFFF;
+		F                   = flags & 0b100011010101;
 		return r;
 	}
 
@@ -2897,7 +2347,7 @@ public:
 	{
 		std::uint64_t flags = 0;
 		std::uint8_t  r     = rngos_intrin_sub8_f(a, b, &flags);
-		F                   = flags & 0xFFFF;
+		F                   = flags & 0b100011010101;
 		return r;
 	}
 
@@ -2905,7 +2355,7 @@ public:
 	{
 		std::uint64_t flags = F;
 		std::uint8_t  r     = rngos_intrin_sbb8_f(a, b, &flags);
-		F                   = flags & 0xFFFF;
+		F                   = flags & 0b100011010101;
 		return r;
 	}
 
@@ -2913,7 +2363,7 @@ public:
 	{
 		std::uint64_t flags = 0;
 		std::uint16_t r     = rngos_intrin_sub16_f(a, b, &flags);
-		F                   = flags & 0xFFFF;
+		F                   = flags & 0b100011010101;
 		return r;
 	}
 
@@ -2921,7 +2371,7 @@ public:
 	{
 		std::uint64_t flags = F;
 		std::uint16_t r     = rngos_intrin_sbb16_f(a, b, &flags);
-		F                   = flags & 0xFFFF;
+		F                   = flags & 0b100011010101;
 		return r;
 	}
 
@@ -3063,7 +2513,7 @@ public:
 	{
 		std::uint64_t flags = 0;
 		std::uint8_t  r     = rngos_intrin_rol8_f(a, count, &flags);
-		F                   = flags & 0xFFFF;
+		F                   = count == 1 ? flags & 0b100000000001 : flags & 0b1;
 		return r;
 	}
 
@@ -3071,7 +2521,7 @@ public:
 	{
 		std::uint64_t flags = 0;
 		std::uint8_t  r     = rngos_intrin_ror8_f(a, count, &flags);
-		F                   = flags & 0xFFFF;
+		F                   = count == 1 ? flags & 0b100000000001 : flags & 0b1;
 		return r;
 	}
 
@@ -3079,7 +2529,7 @@ public:
 	{
 		std::uint64_t flags = 0;
 		std::uint8_t  r     = rngos_intrin_rcl8_f(a, count, &flags);
-		F                   = flags & 0xFFFF;
+		F                   = count == 1 ? flags & 0b100000000001 : flags & 0b1;
 		return r;
 	}
 
@@ -3087,7 +2537,7 @@ public:
 	{
 		std::uint64_t flags = 0;
 		std::uint8_t  r     = rngos_intrin_rcr8_f(a, count, &flags);
-		F                   = flags & 0xFFFF;
+		F                   = count == 1 ? flags & 0b100000000001 : flags & 0b1;
 		return r;
 	}
 
@@ -3095,7 +2545,7 @@ public:
 	{
 		std::uint64_t flags = 0;
 		std::uint8_t  r     = rngos_intrin_shl8_f(a, count, &flags);
-		F                   = flags & 0xFFFF;
+		F                   = count == 1 ? flags & 0b10001100100 : flags & 0b1100100;
 		return r;
 	}
 
@@ -3103,7 +2553,7 @@ public:
 	{
 		std::uint64_t flags = 0;
 		std::uint8_t  r     = rngos_intrin_shr8_f(a, count, &flags);
-		F                   = flags & 0xFFFF;
+		F                   = count == 1 ? flags & 0b10001100100 : flags & 0b1100100;
 		return r;
 	}
 
@@ -3111,7 +2561,7 @@ public:
 	{
 		std::uint64_t flags = 0;
 		std::uint8_t  r     = rngos_intrin_sar8_f(a, count, &flags);
-		F                   = flags & 0xFFFF;
+		F                   = count == 1 ? flags & 0b10001100101 : flags & 0b1100101;
 		return r;
 	}
 
@@ -3119,7 +2569,7 @@ public:
 	{
 		std::uint64_t flags = 0;
 		std::uint16_t r     = rngos_intrin_rol16_f(a, count, &flags);
-		F                   = flags & 0xFFFF;
+		F                   = count == 1 ? flags & 0b100000000001 : flags & 0b1;
 		return r;
 	}
 
@@ -3127,7 +2577,7 @@ public:
 	{
 		std::uint64_t flags = 0;
 		std::uint16_t r     = rngos_intrin_ror16_f(a, count, &flags);
-		F                   = flags & 0xFFFF;
+		F                   = count == 1 ? flags & 0b100000000001 : flags & 0b1;
 		return r;
 	}
 
@@ -3135,7 +2585,7 @@ public:
 	{
 		std::uint64_t flags = 0;
 		std::uint16_t r     = rngos_intrin_rcl16_f(a, count, &flags);
-		F                   = flags & 0xFFFF;
+		F                   = count == 1 ? flags & 0b100000000001 : flags & 0b1;
 		return r;
 	}
 
@@ -3143,7 +2593,7 @@ public:
 	{
 		std::uint64_t flags = 0;
 		std::uint16_t r     = rngos_intrin_rcr16_f(a, count, &flags);
-		F                   = flags & 0xFFFF;
+		F                   = count == 1 ? flags & 0b100000000001 : flags & 0b1;
 		return r;
 	}
 
@@ -3151,7 +2601,7 @@ public:
 	{
 		std::uint64_t flags = 0;
 		std::uint16_t r     = rngos_intrin_shl16_f(a, count, &flags);
-		F                   = flags & 0xFFFF;
+		F                   = count == 1 ? flags & 0b10001100100 : flags & 0b1100100;
 		return r;
 	}
 
@@ -3159,7 +2609,7 @@ public:
 	{
 		std::uint64_t flags = 0;
 		std::uint16_t r     = rngos_intrin_shr16_f(a, count, &flags);
-		F                   = flags & 0xFFFF;
+		F                   = count == 1 ? flags & 0b10001100100 : flags & 0b1100100;
 		return r;
 	}
 
@@ -3167,7 +2617,7 @@ public:
 	{
 		std::uint64_t flags = 0;
 		std::uint16_t r     = rngos_intrin_sar16_f(a, count, &flags);
-		F                   = flags & 0xFFFF;
+		F                   = count == 1 ? flags & 0b10001100101 : flags & 0b1100101;
 		return r;
 	}
 
@@ -3175,7 +2625,7 @@ public:
 	{
 		std::uint64_t flags = 0;
 		std::uint8_t  r     = rngos_intrin_and8_f(a, b, &flags);
-		F                   = flags & 0xFFFF;
+		F                   = flags & 0b10001100101;
 		return r;
 	}
 
@@ -3183,7 +2633,7 @@ public:
 	{
 		std::uint64_t flags = 0;
 		std::uint16_t r     = rngos_intrin_and16_f(a, b, &flags);
-		F                   = flags & 0xFFFF;
+		F                   = flags & 0b10001100101;
 		return r;
 	}
 
@@ -3191,7 +2641,7 @@ public:
 	{
 		std::uint64_t flags = 0;
 		std::uint8_t  r     = rngos_intrin_or8_f(a, b, &flags);
-		F                   = flags & 0xFFFF;
+		F                   = flags & 0b10001100101;
 		return r;
 	}
 
@@ -3199,7 +2649,7 @@ public:
 	{
 		std::uint64_t flags = 0;
 		std::uint16_t r     = rngos_intrin_or16_f(a, b, &flags);
-		F                   = flags & 0xFFFF;
+		F                   = flags & 0b10001100101;
 		return r;
 	}
 
@@ -3207,7 +2657,7 @@ public:
 	{
 		std::uint64_t flags = 0;
 		std::uint8_t  r     = rngos_intrin_xor8_f(a, b, &flags);
-		F                   = flags & 0xFFFF;
+		F                   = flags & 0b10001100101;
 		return r;
 	}
 
@@ -3215,38 +2665,32 @@ public:
 	{
 		std::uint64_t flags = 0;
 		std::uint16_t r     = rngos_intrin_xor16_f(a, b, &flags);
-		F                   = flags & 0xFFFF;
+		F                   = flags & 0b10001100101;
 		return r;
 	}
 
 	std::uint8_t not8Bit(std::uint8_t a)
 	{
-		std::uint64_t flags = 0;
-		std::uint8_t  r     = rngos_intrin_not8_f(a, &flags);
-		F                   = flags & 0xFFFF;
-		return r;
+		return ~a;
 	}
 
 	std::uint16_t not16Bit(std::uint16_t a)
 	{
-		std::uint64_t flags = 0;
-		std::uint16_t r     = rngos_intrin_not16_f(a, &flags);
-		F                   = flags & 0xFFFF;
-		return r;
+		return ~a;
 	}
 
 	void cmp8Bit(std::uint8_t a, std::uint8_t b)
 	{
 		std::uint64_t flags = 0;
 		rngos_intrin_cmp8_f(a, b, &flags);
-		F = flags & 0xFFFF;
+		F = flags & 0b100011010101;
 	}
 
 	void cmp16Bit(std::uint16_t a, std::uint16_t b)
 	{
 		std::uint64_t flags = 0;
 		rngos_intrin_cmp16_f(a, b, &flags);
-		F = flags & 0xFFFF;
+		F = flags & 0b100011010101;
 	}
 
 	std::uint8_t in8Bit(std::uint16_t port)
@@ -3279,7 +2723,8 @@ public:
 	{
 		Interrupt = interrupt;
 
-		// TODO: Find interrupt handler
+		// TODO: Find interrupt handler, for the time being we'll assume the os doesn't set an interrupt handler. All interrupts can potentially crash the system.
+		HandleInterrupt = false;
 		if (HandleInterrupt)
 		{
 			push16Bit(F);
