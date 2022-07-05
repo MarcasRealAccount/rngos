@@ -16,7 +16,10 @@ section .text
 		mov ax, cx
 		ret
 	GlobalLabel rngos_intrin_adc8_f ; cl => a, dl => b, r8 => pFlags
-		push qword [r8]
+		pushfq
+		pop rax
+		or rax, qword [r8]
+		push rax
 		popfq
 		adc cl, dl
 		pushfq
@@ -24,7 +27,10 @@ section .text
 		mov al, cl
 		ret
 	GlobalLabel rngos_intrin_adc16_f ; cx => a, dx => b, r8 => pFlags
-		push qword [r8]
+		pushfq
+		pop rax
+		or rax, qword [r8]
+		push rax
 		popfq
 		adc cx, dx
 		pushfq
@@ -45,7 +51,10 @@ section .text
 		mov ax, cx
 		ret
 	GlobalLabel rngos_intrin_sbb8_f ; cl => a, dl => b, r8 => pFlags
-		push qword [r8]
+		pushfq
+		pop rax
+		or rax, qword [r8]
+		push rax
 		popfq
 		sbb cl, dl
 		pushfq
@@ -53,7 +62,10 @@ section .text
 		mov al, cl
 		ret
 	GlobalLabel rngos_intrin_sbb16_f ; cx => a, dx => b, r8 => pFlags
-		push qword [r8]
+		pushfq
+		pop rax
+		or rax, qword [r8]
+		push rax
 		popfq
 		sbb cx, dx
 		pushfq

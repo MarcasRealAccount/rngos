@@ -1496,6 +1496,8 @@ public:
 				while (CX > 0)
 				{
 					write8Bit(dstAddress, read8Bit(srcAddress));
+					if (Interrupt)
+						break;
 					if (DF())
 					{
 						++srcAddress;
@@ -1546,6 +1548,8 @@ public:
 				while (CX > 0)
 				{
 					write16Bit(dstAddress, read16Bit(srcAddress));
+					if (Interrupt)
+						break;
 					if (DF())
 					{
 						srcAddress += 2;
@@ -1591,6 +1595,8 @@ public:
 				while (CX > 0 && rep == 0b11'11'00'10 ? !ZF() : ZF())
 				{
 					cmp8Bit(read8Bit(dstAddress), read8Bit(srcAddress));
+					if (Interrupt)
+						break;
 					if (DF())
 					{
 						++srcAddress;
@@ -1635,6 +1641,8 @@ public:
 				while (CX > 0 && rep == 0b11'11'00'10 ? !ZF() : ZF())
 				{
 					cmp16Bit(read16Bit(dstAddress), read16Bit(srcAddress));
+					if (Interrupt)
+						break;
 					if (DF())
 					{
 						srcAddress += 2;
@@ -1679,6 +1687,8 @@ public:
 				while (CX > 0 && rep == 0b11'11'00'10 ? !ZF() : ZF())
 				{
 					cmp8Bit(AL(), read8Bit(srcAddress));
+					if (Interrupt)
+						break;
 					if (DF())
 					{
 						++srcAddress;
@@ -1711,6 +1721,8 @@ public:
 				while (CX > 0 && rep == 0b11'11'00'10 ? !ZF() : ZF())
 				{
 					cmp16Bit(AX, read16Bit(srcAddress));
+					if (Interrupt)
+						break;
 					if (DF())
 					{
 						srcAddress += 2;
@@ -1750,6 +1762,8 @@ public:
 				while (CX > 0)
 				{
 					AX = read8Bit(srcAddress);
+					if (Interrupt)
+						break;
 					if (DF())
 					{
 						++srcAddress;
@@ -1788,6 +1802,8 @@ public:
 				while (CX > 0)
 				{
 					AX = read16Bit(srcAddress);
+					if (Interrupt)
+						break;
 					if (DF())
 					{
 						srcAddress += 2;
@@ -1827,6 +1843,8 @@ public:
 				while (CX > 0)
 				{
 					write8Bit(dstAddress, AL());
+					if (Interrupt)
+						break;
 					if (DF())
 					{
 						++dstAddress;
@@ -1865,6 +1883,8 @@ public:
 				while (CX > 0)
 				{
 					write16Bit(dstAddress, AX);
+					if (Interrupt)
+						break;
 					if (DF())
 					{
 						dstAddress += 2;
@@ -1904,6 +1924,8 @@ public:
 				while (CX > 0)
 				{
 					write8Bit(dstAddress, in8Bit(DX));
+					if (Interrupt)
+						break;
 					if (DF())
 					{
 						++dstAddress;
@@ -1942,6 +1964,8 @@ public:
 				while (CX > 0)
 				{
 					write16Bit(dstAddress, in16Bit(DX));
+					if (Interrupt)
+						break;
 					if (DF())
 					{
 						dstAddress += 2;
@@ -1981,6 +2005,8 @@ public:
 				while (CX > 0)
 				{
 					out8Bit(DX, read8Bit(srcAddress));
+					if (Interrupt)
+						break;
 					if (DF())
 					{
 						++srcAddress;
@@ -2019,6 +2045,8 @@ public:
 				while (CX > 0)
 				{
 					out16Bit(DX, read16Bit(srcAddress));
+					if (Interrupt)
+						break;
 					if (DF())
 					{
 						srcAddress += 2;
@@ -2354,7 +2382,7 @@ public:
 
 	std::uint8_t adc8Bit(std::uint8_t a, std::uint8_t b)
 	{
-		std::uint64_t flags = F;
+		std::uint64_t flags = F & 1;
 		std::uint8_t  r     = rngos_intrin_adc8_f(a, b, &flags);
 		F                   = flags & 0b100011010101;
 		return r;
@@ -2370,7 +2398,7 @@ public:
 
 	std::uint16_t adc16Bit(std::uint16_t a, std::uint16_t b)
 	{
-		std::uint64_t flags = F;
+		std::uint64_t flags = F & 1;
 		std::uint16_t r     = rngos_intrin_adc16_f(a, b, &flags);
 		F                   = flags & 0b100011010101;
 		return r;
@@ -2386,7 +2414,7 @@ public:
 
 	std::uint8_t sbb8Bit(std::uint8_t a, std::uint8_t b)
 	{
-		std::uint64_t flags = F;
+		std::uint64_t flags = F & 1;
 		std::uint8_t  r     = rngos_intrin_sbb8_f(a, b, &flags);
 		F                   = flags & 0b100011010101;
 		return r;
@@ -2402,7 +2430,7 @@ public:
 
 	std::uint16_t sbb16Bit(std::uint16_t a, std::uint16_t b)
 	{
-		std::uint64_t flags = F;
+		std::uint64_t flags = F & 1;
 		std::uint16_t r     = rngos_intrin_sbb16_f(a, b, &flags);
 		F                   = flags & 0b100011010101;
 		return r;
@@ -2820,10 +2848,42 @@ public:
 		return value;
 	}
 
-	void          write8Bit(std::uint32_t address, std::uint8_t value) { memory[address] = value; }
-	void          write16Bit(std::uint32_t address, std::uint16_t value) { *reinterpret_cast<std::uint16_t*>(memory + address) = value; }
-	std::uint8_t  read8Bit(std::uint32_t address) { return memory[address]; }
-	std::uint16_t read16Bit(std::uint32_t address) { return *reinterpret_cast<std::uint16_t*>(memory + address); }
+	void write8Bit(std::uint32_t address, std::uint8_t value)
+	{
+		if (address > 0xF'FFFF)
+		{
+			interrupt(Interrupts::s_OF);
+			return;
+		}
+		memory[address] = value;
+	}
+	void write16Bit(std::uint32_t address, std::uint16_t value)
+	{
+		if (address > 0xF'FFFF)
+		{
+			interrupt(Interrupts::s_OF);
+			return;
+		}
+		*reinterpret_cast<std::uint16_t*>(memory + address) = value;
+	}
+	std::uint8_t read8Bit(std::uint32_t address)
+	{
+		if (address > 0xF'FFFF)
+		{
+			interrupt(Interrupts::s_OF);
+			return 0;
+		}
+		return memory[address];
+	}
+	std::uint16_t read16Bit(std::uint32_t address)
+	{
+		if (address > 0xF'FFFF)
+		{
+			interrupt(Interrupts::s_OF);
+			return 0;
+		}
+		return *reinterpret_cast<std::uint16_t*>(memory + address);
+	}
 
 	void setReg8Bit(std::uint8_t dst, std::uint8_t value)
 	{
@@ -3146,7 +3206,7 @@ int main(int argc, char** argv)
 		auto        end        = Clock::now();
 		float       time       = std::chrono::duration_cast<std::chrono::duration<float>>(end - start).count();
 		bool        outputFile = false;
-		std::string message    = "execution in " + std::to_string(time) + " seconds, IPS: " + std::to_string(cpu->IPS()) + ", IP=" + std::to_string(cpu->CS) + ":" + std::to_string(cpu->IP);
+		std::string message    = "execution in " + std::to_string(time) + " seconds, IPS: " + std::to_string(cpu->IPS()) + ", IP=" + std::to_string(cpu->CS) + ":" + std::to_string(cpu->IP) + ", Total=" + std::to_string(cpu->totalInstructions);
 		std::string filename   = "os_" + std::to_string(run) + ".bin";
 		switch (reason)
 		{
