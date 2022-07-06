@@ -1,8 +1,13 @@
 #include "Utils/Core.h"
 
+#include <ANSI/Graphics.h>
+#include <CommonCLI/Colors.h>
+#include <CommonCLI/KeyValue/KVHandler.h>
+
 #include <bit>
 #include <chrono>
 #include <filesystem>
+#include <format>
 #include <fstream>
 #include <iostream>
 #include <random>
@@ -3173,68 +3178,213 @@ public:
 	std::size_t                                    totalInstructions;
 };
 
-int main(int argc, char** argv)
+std::vector<std::string> s_BinaryFiles;
+std::size_t              s_BootSectorSize = 512;
+std::size_t              s_MaxRuns        = ~0ULL;
+
+int main(int argc, const char** argv)
 {
-	std::size_t execution = 0;
-	while (true)
+	CommonCLI::KeyValue::Handler handler { "rngos", "Randomly generate boot sector and interpret as if by an 80186 cpu", { 1, 0, 0 } };
+
+	handler.addKey(CommonCLI::KeyValue::Key {
+	    "run",
+	    []([[maybe_unused]] CommonCLI::KeyValue::Key& self, [[maybe_unused]] CommonCLI::KeyValue::HandlerContext& context, [[maybe_unused]] const std::vector<std::string_view>& values, [[maybe_unused]] std::size_t& usedValueCount)
+	    {
+		    s_BinaryFiles.reserve(values.size());
+		    for (auto value : values)
+			    s_BinaryFiles.emplace_back(std::string { value });
+		    usedValueCount = values.size();
+	    },
+	    std::vector<CommonCLI::KeyValue::Value> {
+	        CommonCLI::KeyValue::Value {
+	            "binary",
+	            CommonCLI::KeyValue::EValueMode::MultiRequired,
+	            std::vector<std::string> {},
+	            CommonCLI::KeyValue::Help::Info {
+	                "Binary files to interpret" } } },
+	    CommonCLI::KeyValue::Help::Info {
+	        "Interprets binary files" } });
+	handler.addKey(CommonCLI::KeyValue::Key {
+	    "sector-size",
+	    []([[maybe_unused]] CommonCLI::KeyValue::Key& self, [[maybe_unused]] CommonCLI::KeyValue::HandlerContext& context, [[maybe_unused]] const std::vector<std::string_view>& values, [[maybe_unused]] std::size_t& usedValueCount)
+	    {
+		    const char* begin = values[0].data();
+		    char*       end   = const_cast<char*>(values[0].data() + values[0].size());
+		    s_BootSectorSize  = std::strtoull(begin, &end, 10);
+	    },
+	    std::vector<CommonCLI::KeyValue::Value> {
+	        CommonCLI::KeyValue::Value {
+	            "size",
+	            CommonCLI::KeyValue::EValueMode::Required,
+	            std::vector<std::string> {},
+	            CommonCLI::KeyValue::Help::Info {
+	                "Size of boot sector" } } },
+	    CommonCLI::KeyValue::Help::Info {
+	        "Sets size of a boot sector", "Minimum of 2 bytes, Maximum of 1'016'832 bytes, default is 512 bytes, expects the last two bytes to be the boot sector bytes" } });
+	handler.addKey(CommonCLI::KeyValue::Key {
+	    "max-runs",
+	    []([[maybe_unused]] CommonCLI::KeyValue::Key& self, [[maybe_unused]] CommonCLI::KeyValue::HandlerContext& context, [[maybe_unused]] const std::vector<std::string_view>& values, [[maybe_unused]] std::size_t& usedValueCount)
+	    {
+		    const char* begin = values[0].data();
+		    char*       end   = const_cast<char*>(values[0].data() + values[0].size());
+		    s_MaxRuns         = std::strtoull(begin, &end, 10);
+	    },
+	    std::vector<CommonCLI::KeyValue::Value> {
+	        CommonCLI::KeyValue::Value {
+	            "runs",
+	            CommonCLI::KeyValue::EValueMode::Required,
+	            std::vector<std::string> {},
+	            CommonCLI::KeyValue::Help::Info {
+	                "Number of runs" } } },
+	    CommonCLI::KeyValue::Help::Info {
+	        "Sets the number of runs to execute", "Default is 2^n runs where n is the number of bits in a std::size_t" } });
+
+	auto  result   = handler.handle(argc, argv);
+	auto& messages = result.getMessages();
+	bool  exit     = false;
+	for (auto& message : messages)
 	{
-		if (!std::filesystem::exists(std::to_string(execution) + "/"))
-			break;
-		++execution;
+		if (message.isError())
+		{
+			std::cerr << message.getStr() << '\n';
+			exit = true;
+		}
+		else
+		{
+			std::cout << message.getStr() << '\n';
+		}
 	}
-
-	std::size_t run    = 0;
-	std::string output = std::to_string(execution) + "/";
-
-	std::filesystem::create_directory(output);
-	std::filesystem::create_directory(output + "Amazing/");
-	std::filesystem::create_directory(output + "Subpar/");
+	std::cout << ANSI::GraphicsReset;
+	if (exit)
+		return 1;
 
 	CPU* cpu = new CPU();
 
-	using Clock = std::chrono::high_resolution_clock;
-
-	std::uint8_t drive[512];
-
-	while (true)
+	if (!s_BinaryFiles.empty())
 	{
-		auto start = Clock::now();
-		randomize(drive, sizeof(drive));
-		drive[510]             = 0xAA;
-		drive[511]             = 0x55;
-		auto        reason     = cpu->boot(drive, sizeof(drive));
-		auto        end        = Clock::now();
-		float       time       = std::chrono::duration_cast<std::chrono::duration<float>>(end - start).count();
-		bool        outputFile = false;
-		std::string message    = "execution in " + std::to_string(time) + " seconds, IPS: " + std::to_string(cpu->IPS()) + ", IP=" + std::to_string(cpu->CS) + ":" + std::to_string(cpu->IP) + ", Total=" + std::to_string(cpu->totalInstructions);
-		std::string filename   = "os_" + std::to_string(run) + ".bin";
-		switch (reason)
+		using Clock = std::chrono::high_resolution_clock;
+
+		std::vector<std::uint8_t> bootSector;
+		for (auto& binaryFile : s_BinaryFiles)
 		{
-		case EReason::Halt:
-			outputFile = true;
-			filename   = "Amazing/" + filename;
-			message    = "Successful " + message;
-			break;
-		case EReason::Long:
-			outputFile = true;
-			filename   = "Subpar/" + filename;
-			message    = "Subpar " + message;
-			break;
-		case EReason::Interrupt:
-			message = "Unsucessful " + message + ", Interrupt=" + std::to_string(cpu->Interrupt);
-			break;
-		}
-		std::cout << "Run " << run << ": " << message << '\n';
-		if (outputFile)
-		{
-			std::ofstream file { output + filename, std::ios::binary };
-			if (file)
 			{
-				file.write(reinterpret_cast<char*>(drive), sizeof(drive));
+				std::ifstream file { binaryFile, std::ios::binary | std::ios::ate };
+				std::size_t   size = file.tellg();
+				if (size > 1016832)
+				{
+					std::cerr << std::format("{}Binary file {}'{}'{} is larger than 1'016'832 bytes\n", CommonCLI::Colors::Error, CommonCLI::Colors::Arg, binaryFile, CommonCLI::Colors::Error);
+					file.close();
+					continue;
+				}
+				bootSector.resize(size);
+				file.seekg(0);
+				file.read(reinterpret_cast<char*>(bootSector.data()), bootSector.size());
 				file.close();
 			}
+
+			auto start  = Clock::now();
+			auto reason = cpu->boot(bootSector.data(), bootSector.size());
+			auto end    = Clock::now();
+			auto time   = std::chrono::duration_cast<std::chrono::duration<float>>(end - start);
+
+			std::string message;
+			switch (reason)
+			{
+			case EReason::Halt:
+				message = std::format("{}: Successful execution in {} seconds, IPS: {}, IP=[{:04x}:{:04x}], Total={}\n", binaryFile, time, cpu->IPS(), cpu->CS, cpu->IP, cpu->totalInstructions);
+				break;
+			case EReason::Long:
+				message = std::format("{}: Subpar execution in {} seconds, IPS: {}, IP=[{:04x}:{:04x}], Total={}\n", binaryFile, time, cpu->IPS(), cpu->CS, cpu->IP, cpu->totalInstructions);
+				break;
+			case EReason::Interrupt:
+				message = std::format("{}: Unsucessful execution in {} seconds, IPS: {}, IP=[{:04x}:{:04x}], Total={}, Interrupt={}\n", binaryFile, time, cpu->IPS(), cpu->CS, cpu->IP, cpu->totalInstructions, cpu->Interrupt);
+				break;
+			default:
+				message = std::format("{}: Unexpected execution in {} seconds, IPS: {}, IP=[{:04x}:{:04x}], Total={}\n", binaryFile, time, cpu->IPS(), cpu->CS, cpu->IP, cpu->totalInstructions);
+				break;
+			}
+			std::cout << ANSI::GraphicsReset << message;
+		}
+	}
+	else
+	{
+		if (s_BootSectorSize < 2)
+		{
+			std::cout << CommonCLI::Colors::Warn << "Bootsector size smaller than 2 bytes, forcing 2 bytes\n";
+			s_BootSectorSize = 2;
+		}
+		else if (s_BootSectorSize > 1016832)
+		{
+			std::cout << CommonCLI::Colors::Warn << "Bootsector size larger than 1'016'832 bytes, forcing 1'016'832 bytes\n";
+			s_BootSectorSize = 1016832;
 		}
 
-		++run;
+		std::size_t execution = 0;
+		while (true)
+		{
+			if (!std::filesystem::exists(std::to_string(execution) + "/"))
+				break;
+			++execution;
+		}
+
+		std::size_t run    = 0;
+		std::string output = std::to_string(execution) + "/";
+
+		std::filesystem::create_directory(output);
+		std::filesystem::create_directory(output + "Amazing/");
+		std::filesystem::create_directory(output + "Subpar/");
+
+		using Clock = std::chrono::high_resolution_clock;
+
+		std::uint8_t* bootSector = new std::uint8_t[s_BootSectorSize];
+
+		while (run < s_MaxRuns)
+		{
+			auto start = Clock::now();
+			randomize(bootSector, s_BootSectorSize);
+			bootSector[s_BootSectorSize - 2] = 0xAA;
+			bootSector[s_BootSectorSize - 1] = 0x55;
+			auto  reason                     = cpu->boot(bootSector, s_BootSectorSize);
+			auto  end                        = Clock::now();
+			float time                       = std::chrono::duration_cast<std::chrono::duration<float>>(end - start).count();
+			bool  outputFile                 = false;
+
+			std::string filename = "os_" + std::to_string(run) + ".bin";
+			std::string message;
+			switch (reason)
+			{
+			case EReason::Halt:
+				outputFile = true;
+				filename   = "Amazing/" + filename;
+				message    = std::format("{}: Successful execution in {} seconds, IPS: {}, IP=[{:04x}:{:04x}], Total={}\n", run, time, cpu->IPS(), cpu->CS, cpu->IP, cpu->totalInstructions);
+				break;
+			case EReason::Long:
+				outputFile = true;
+				filename   = "Subpar/" + filename;
+				message    = std::format("{}: Subpar execution in {} seconds, IPS: {}, IP=[{:04x}:{:04x}], Total={}\n", run, time, cpu->IPS(), cpu->CS, cpu->IP, cpu->totalInstructions);
+				break;
+			case EReason::Interrupt:
+				message = std::format("{}: Unsucessful execution in {} seconds, IPS: {}, IP=[{:04x}:{:04x}], Total={}, Interrupt={}\n", run, time, cpu->IPS(), cpu->CS, cpu->IP, cpu->totalInstructions, cpu->Interrupt);
+				break;
+			default:
+				message = std::format("{}: Unexpected execution in {} seconds, IPS: {}, IP=[{:04x}:{:04x}], Total={}\n", run, time, cpu->IPS(), cpu->CS, cpu->IP, cpu->totalInstructions);
+				break;
+			}
+			std::cout << ANSI::GraphicsReset << message;
+
+			if (outputFile)
+			{
+				std::ofstream file { output + filename, std::ios::binary };
+				if (file)
+				{
+					file.write(reinterpret_cast<char*>(bootSector), s_BootSectorSize);
+					file.close();
+				}
+			}
+
+			++run;
+		}
+
+		delete[] bootSector;
 	}
 }

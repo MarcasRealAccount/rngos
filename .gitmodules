@@ -1,0 +1,3 @@
+[submodule "ThirdParty/CommonCLI"]
+	path = ThirdParty/CommonCLI
+	url = https://github.com/MarcasRealAccount/CommonCLI.git
