@@ -70,9 +70,9 @@ void randomize(std::uint8_t* bytes, std::size_t count)
 
 struct ModRM
 {
-	std::uint8_t  mod : 2;
-	std::uint8_t  reg : 3;
 	std::uint8_t  rm : 3;
+	std::uint8_t  reg : 3;
+	std::uint8_t  mod : 2;
 	std::uint16_t offset;
 };
 
@@ -381,7 +381,7 @@ public:
 		}
 		case 0b01'10'10'10: // PUSH 8 bit
 		{
-			push16Bit(static_cast<std::int16_t>(static_cast<std::int8_t>(pullIPImm8())));
+			push16Bit(pullIPImm8SE());
 			break;
 		}
 		case 0b01'10'10'00: // PUSH 16 bit
