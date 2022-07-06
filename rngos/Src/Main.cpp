@@ -1505,17 +1505,17 @@ public:
 						break;
 					if (DF())
 					{
-						++srcAddress;
-						++dstAddress;
-						++SI;
-						++DI;
-					}
-					else
-					{
 						--srcAddress;
 						--dstAddress;
 						--SI;
 						--DI;
+					}
+					else
+					{
+						++srcAddress;
+						++dstAddress;
+						++SI;
+						++DI;
 					}
 					--CX;
 				}
@@ -1527,13 +1527,13 @@ public:
 				write8Bit(dstAddress, read8Bit(srcAddress));
 				if (DF())
 				{
-					++SI;
-					++DI;
+					--SI;
+					--DI;
 				}
 				else
 				{
-					--SI;
-					--DI;
+					++SI;
+					++DI;
 				}
 			}
 			break;
@@ -1557,17 +1557,17 @@ public:
 						break;
 					if (DF())
 					{
-						srcAddress += 2;
-						dstAddress += 2;
-						SI += 2;
-						DI += 2;
-					}
-					else
-					{
 						srcAddress -= 2;
 						dstAddress -= 2;
 						SI -= 2;
 						DI -= 2;
+					}
+					else
+					{
+						srcAddress += 2;
+						dstAddress += 2;
+						SI += 2;
+						DI += 2;
 					}
 					--CX;
 				}
@@ -1579,13 +1579,13 @@ public:
 				write16Bit(dstAddress, read16Bit(srcAddress));
 				if (DF())
 				{
-					SI += 2;
-					DI += 2;
+					SI -= 2;
+					DI -= 2;
 				}
 				else
 				{
-					SI -= 2;
-					DI -= 2;
+					SI += 2;
+					DI += 2;
 				}
 			}
 			break;
@@ -1604,17 +1604,17 @@ public:
 						break;
 					if (DF())
 					{
-						++srcAddress;
-						++dstAddress;
-						++SI;
-						++DI;
-					}
-					else
-					{
 						--srcAddress;
 						--dstAddress;
 						--SI;
 						--DI;
+					}
+					else
+					{
+						++srcAddress;
+						++dstAddress;
+						++SI;
+						++DI;
 					}
 					--CX;
 				}
@@ -1626,13 +1626,13 @@ public:
 				cmp8Bit(read8Bit(srcAddress), read8Bit(dstAddress));
 				if (DF())
 				{
-					++SI;
-					++DI;
+					--SI;
+					--DI;
 				}
 				else
 				{
-					--SI;
-					--DI;
+					++SI;
+					++DI;
 				}
 			}
 			break;
@@ -1650,17 +1650,17 @@ public:
 						break;
 					if (DF())
 					{
-						srcAddress += 2;
-						dstAddress += 2;
-						SI += 2;
-						DI += 2;
-					}
-					else
-					{
 						srcAddress -= 2;
 						dstAddress -= 2;
 						SI -= 2;
 						DI -= 2;
+					}
+					else
+					{
+						srcAddress += 2;
+						dstAddress += 2;
+						SI += 2;
+						DI += 2;
 					}
 					--CX;
 				}
@@ -1672,13 +1672,13 @@ public:
 				cmp16Bit(read16Bit(srcAddress), read16Bit(dstAddress));
 				if (DF())
 				{
-					SI += 2;
-					DI += 2;
+					SI -= 2;
+					DI -= 2;
 				}
 				else
 				{
-					SI -= 2;
-					DI -= 2;
+					SI += 2;
+					DI += 2;
 				}
 			}
 			break;
@@ -1696,13 +1696,13 @@ public:
 						break;
 					if (DF())
 					{
-						++srcAddress;
-						++DI;
+						--srcAddress;
+						--DI;
 					}
 					else
 					{
-						--srcAddress;
-						--DI;
+						++srcAddress;
+						++DI;
 					}
 					--CX;
 				}
@@ -1712,9 +1712,9 @@ public:
 				std::uint32_t srcAddress = Address(ES, DI);
 				cmp8Bit(AL(), read8Bit(srcAddress));
 				if (DF())
-					++DI;
-				else
 					--DI;
+				else
+					++DI;
 			}
 			break;
 		}
@@ -1730,13 +1730,13 @@ public:
 						break;
 					if (DF())
 					{
-						srcAddress += 2;
-						DI += 2;
+						srcAddress -= 2;
+						DI -= 2;
 					}
 					else
 					{
-						srcAddress -= 2;
-						DI -= 2;
+						srcAddress += 2;
+						DI += 2;
 					}
 					--CX;
 				}
@@ -1746,9 +1746,9 @@ public:
 				std::uint32_t srcAddress = Address(ES, DI);
 				cmp16Bit(AX, read16Bit(srcAddress));
 				if (DF())
-					DI += 2;
-				else
 					DI -= 2;
+				else
+					DI += 2;
 			}
 			break;
 		}
@@ -1771,13 +1771,13 @@ public:
 						break;
 					if (DF())
 					{
-						++srcAddress;
-						++SI;
+						--srcAddress;
+						--SI;
 					}
 					else
 					{
-						--srcAddress;
-						--SI;
+						++srcAddress;
+						++SI;
 					}
 					--CX;
 				}
@@ -1787,9 +1787,9 @@ public:
 				std::uint32_t srcAddress = Address(segmentOverride(so, DS), SI);
 				AX                       = read8Bit(srcAddress);
 				if (DF())
-					++SI;
-				else
 					--SI;
+				else
+					++SI;
 			}
 			break;
 		}
@@ -1811,13 +1811,13 @@ public:
 						break;
 					if (DF())
 					{
-						srcAddress += 2;
-						SI += 2;
+						srcAddress -= 2;
+						SI -= 2;
 					}
 					else
 					{
-						srcAddress -= 2;
-						SI -= 2;
+						srcAddress += 2;
+						SI += 2;
 					}
 					--CX;
 				}
@@ -1827,9 +1827,9 @@ public:
 				std::uint32_t srcAddress = Address(segmentOverride(so, DS), SI);
 				AX                       = read16Bit(srcAddress);
 				if (DF())
-					SI += 2;
-				else
 					SI -= 2;
+				else
+					SI += 2;
 			}
 			break;
 		}
@@ -1852,13 +1852,13 @@ public:
 						break;
 					if (DF())
 					{
-						++dstAddress;
-						++DI;
+						--dstAddress;
+						--DI;
 					}
 					else
 					{
-						--dstAddress;
-						--DI;
+						++dstAddress;
+						++DI;
 					}
 					--CX;
 				}
@@ -1868,9 +1868,9 @@ public:
 				std::uint32_t dstAddress = Address(ES, DI);
 				write8Bit(dstAddress, AL());
 				if (DF())
-					++DI;
-				else
 					--DI;
+				else
+					++DI;
 			}
 			break;
 		}
@@ -1892,13 +1892,13 @@ public:
 						break;
 					if (DF())
 					{
-						dstAddress += 2;
-						DI += 2;
+						dstAddress -= 2;
+						DI -= 2;
 					}
 					else
 					{
-						dstAddress -= 2;
-						DI -= 2;
+						dstAddress += 2;
+						DI += 2;
 					}
 					--CX;
 				}
@@ -1908,9 +1908,9 @@ public:
 				std::uint32_t dstAddress = Address(ES, DI);
 				write16Bit(dstAddress, AX);
 				if (DF())
-					DI += 2;
-				else
 					DI -= 2;
+				else
+					DI += 2;
 			}
 			break;
 		}
@@ -1933,13 +1933,13 @@ public:
 						break;
 					if (DF())
 					{
-						++dstAddress;
-						++DI;
+						--dstAddress;
+						--DI;
 					}
 					else
 					{
-						--dstAddress;
-						--DI;
+						++dstAddress;
+						++DI;
 					}
 					--CX;
 				}
@@ -1949,9 +1949,9 @@ public:
 				std::uint32_t dstAddress = Address(ES, DI);
 				write8Bit(dstAddress, in8Bit(DX));
 				if (DF())
-					++DI;
-				else
 					--DI;
+				else
+					++DI;
 			}
 			break;
 		}
@@ -1973,13 +1973,13 @@ public:
 						break;
 					if (DF())
 					{
-						dstAddress += 2;
-						DI += 2;
+						dstAddress -= 2;
+						DI -= 2;
 					}
 					else
 					{
-						dstAddress -= 2;
-						DI -= 2;
+						dstAddress += 2;
+						DI += 2;
 					}
 					--CX;
 				}
@@ -1989,9 +1989,9 @@ public:
 				std::uint32_t dstAddress = Address(ES, DI);
 				write16Bit(dstAddress, in16Bit(DX));
 				if (DF())
-					DI += 2;
-				else
 					DI -= 2;
+				else
+					DI += 2;
 			}
 			break;
 		}
@@ -2014,13 +2014,13 @@ public:
 						break;
 					if (DF())
 					{
-						++srcAddress;
-						++SI;
+						--srcAddress;
+						--SI;
 					}
 					else
 					{
-						--srcAddress;
-						--SI;
+						++srcAddress;
+						++SI;
 					}
 					--CX;
 				}
@@ -2030,9 +2030,9 @@ public:
 				std::uint32_t srcAddress = Address(segmentOverride(so, DS), SI);
 				out8Bit(DX, read8Bit(srcAddress));
 				if (DF())
-					++SI;
-				else
 					--SI;
+				else
+					++SI;
 			}
 			break;
 		}
@@ -2054,13 +2054,13 @@ public:
 						break;
 					if (DF())
 					{
-						srcAddress += 2;
-						SI += 2;
+						srcAddress -= 2;
+						SI -= 2;
 					}
 					else
 					{
-						srcAddress -= 2;
-						SI -= 2;
+						srcAddress += 2;
+						SI += 2;
 					}
 					--CX;
 				}
@@ -2070,9 +2070,9 @@ public:
 				std::uint32_t srcAddress = Address(segmentOverride(so, DS), SI);
 				out16Bit(DX, read16Bit(srcAddress));
 				if (DF())
-					SI += 2;
-				else
 					SI -= 2;
+				else
+					SI += 2;
 			}
 			break;
 		}
@@ -3070,9 +3070,9 @@ public:
 	}
 	std::uint16_t pullIPImm16()
 	{
-		std::uint16_t value = memory[EIP()] << 8;
+		std::uint16_t value = memory[EIP()];
 		++IP;
-		value |= memory[EIP()];
+		value |= memory[EIP()] << 8;
 		++IP;
 		return value;
 	}
@@ -3088,9 +3088,9 @@ public:
 	}
 	std::uint16_t pullIPDisp16()
 	{
-		std::uint16_t value = memory[EIP()];
+		std::uint16_t value = memory[EIP()] << 8;
 		++IP;
-		value |= memory[EIP()] << 8;
+		value |= memory[EIP()];
 		++IP;
 		return value;
 	}
