@@ -3321,7 +3321,7 @@ int main(int argc, const char** argv)
 				message = std::format("{:6}:      Subpar execution in {:10f} seconds, IPS={:12.6e}, IP=[{:04x}:{:04x}], Total={:10d}\n", binaryFile, time, cpu->IPS(), cpu->CS, cpu->IP, cpu->totalInstructions);
 				break;
 			case EReason::Interrupt:
-				message = std::format("{:6}: Unsucessful execution in {:10f} seconds, IPS={:12.6e}, IP=[{:04x}:{:04x}], Total={:10d}, Interrupt={}\n", binaryFile, time, cpu->IPS(), cpu->CS, cpu->IP, cpu->totalInstructions, cpu->Interrupt);
+				message = std::format("{:6}: Unsucessful execution in {:10f} seconds, IPS={:12.6e}, IP=[{:04x}:{:04x}], Total={:10d}, Interrupt={:02x}h\n", binaryFile, time, cpu->IPS(), cpu->CS, cpu->IP, cpu->totalInstructions, cpu->Interrupt);
 				break;
 			default:
 				message = std::format("{:6}:  Unexpected execution in {:10f} seconds, IPS={:12.6e}, IP=[{:04x}:{:04x}], Total={:10d}\n", binaryFile, time, cpu->IPS(), cpu->CS, cpu->IP, cpu->totalInstructions);
@@ -3394,7 +3394,7 @@ int main(int argc, const char** argv)
 				message    = std::format("{:6}:      Subpar execution in {:10f} seconds, IPS={:12.6e}, IP=[{:04x}:{:04x}], Total={:10d}\n", run, time, cpu->IPS(), cpu->CS, cpu->IP, cpu->totalInstructions);
 				break;
 			case EReason::Interrupt:
-				message = std::format("{:6}: Unsucessful execution in {:10f} seconds, IPS={:12.6e}, IP=[{:04x}:{:04x}], Total={:10d}, Interrupt={}\n", run, time, cpu->IPS(), cpu->CS, cpu->IP, cpu->totalInstructions, cpu->Interrupt);
+				message = std::format("{:6}: Unsucessful execution in {:10f} seconds, IPS={:12.6e}, IP=[{:04x}:{:04x}], Total={:10d}, Interrupt={:02x}h\n", run, time, cpu->IPS(), cpu->CS, cpu->IP, cpu->totalInstructions, cpu->Interrupt);
 				break;
 			default:
 				message = std::format("{:6}:  Unexpected execution in {:10f} seconds, IPS={:12.6e}, IP=[{:04x}:{:04x}], Total={:10d}\n", run, time, cpu->IPS(), cpu->CS, cpu->IP, cpu->totalInstructions);
