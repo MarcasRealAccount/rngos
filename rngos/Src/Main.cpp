@@ -3179,8 +3179,9 @@ public:
 };
 
 std::vector<std::string> s_BinaryFiles;
-std::size_t              s_BootSectorSize = 512;
-std::size_t              s_MaxRuns        = ~0ULL;
+std::size_t              s_BootSectorSize  = 512;
+std::size_t              s_MaxRuns         = ~0ULL;
+std::size_t              s_MinInstructions = 1;
 
 int main(int argc, const char** argv)
 {
@@ -3238,6 +3239,23 @@ int main(int argc, const char** argv)
 	                "Number of runs" } } },
 	    CommonCLI::KeyValue::Help::Info {
 	        "Sets the number of runs to execute", "Default is 2^n runs where n is the number of bits in a std::size_t" } });
+	handler.addKey(CommonCLI::KeyValue::Key {
+	    "min-instructions",
+	    []([[maybe_unused]] CommonCLI::KeyValue::Key& self, [[maybe_unused]] CommonCLI::KeyValue::HandlerContext& context, [[maybe_unused]] const std::vector<std::string_view>& values, [[maybe_unused]] std::size_t& usedValueCount)
+	    {
+		    const char* begin = values[0].data();
+		    char*       end   = const_cast<char*>(values[0].data() + values[0].size());
+		    s_MinInstructions = std::strtoull(begin, &end, 10);
+	    },
+	    std::vector<CommonCLI::KeyValue::Value> {
+	        CommonCLI::KeyValue::Value {
+	            "instructions",
+	            CommonCLI::KeyValue::EValueMode::Required,
+	            std::vector<std::string> {},
+	            CommonCLI::KeyValue::Help::Info {
+	                "Number of instructions" } } },
+	    CommonCLI::KeyValue::Help::Info {
+	        "Sets the minimum number of instructions to succeed", "Default is 1 instructions" } });
 
 	auto  result   = handler.handle(argc, argv);
 	auto& messages = result.getMessages();
@@ -3282,25 +3300,31 @@ int main(int argc, const char** argv)
 				file.close();
 			}
 
-			auto start  = Clock::now();
-			auto reason = cpu->boot(bootSector.data(), bootSector.size());
-			auto end    = Clock::now();
-			auto time   = std::chrono::duration_cast<std::chrono::duration<float>>(end - start);
+			auto  start  = Clock::now();
+			auto  reason = cpu->boot(bootSector.data(), bootSector.size());
+			auto  end    = Clock::now();
+			float time   = std::chrono::duration_cast<std::chrono::duration<float>>(end - start).count();
+
+			if (cpu->totalInstructions < s_MinInstructions)
+			{
+				reason         = EReason::Interrupt;
+				cpu->Interrupt = Interrupts::s_BP;
+			}
 
 			std::string message;
 			switch (reason)
 			{
 			case EReason::Halt:
-				message = std::format("{}: Successful execution in {} seconds, IPS: {}, IP=[{:04x}:{:04x}], Total={}\n", binaryFile, time, cpu->IPS(), cpu->CS, cpu->IP, cpu->totalInstructions);
+				message = std::format("{}:  Successful execution in {:10f} seconds, IPS={:10f}, IP=[{:04x}:{:04x}], Total={:10d}\n", binaryFile, time, cpu->IPS(), cpu->CS, cpu->IP, cpu->totalInstructions);
 				break;
 			case EReason::Long:
-				message = std::format("{}: Subpar execution in {} seconds, IPS: {}, IP=[{:04x}:{:04x}], Total={}\n", binaryFile, time, cpu->IPS(), cpu->CS, cpu->IP, cpu->totalInstructions);
+				message = std::format("{}:      Subpar execution in {:10f} seconds, IPS={:10f}, IP=[{:04x}:{:04x}], Total={:10d}\n", binaryFile, time, cpu->IPS(), cpu->CS, cpu->IP, cpu->totalInstructions);
 				break;
 			case EReason::Interrupt:
-				message = std::format("{}: Unsucessful execution in {} seconds, IPS: {}, IP=[{:04x}:{:04x}], Total={}, Interrupt={}\n", binaryFile, time, cpu->IPS(), cpu->CS, cpu->IP, cpu->totalInstructions, cpu->Interrupt);
+				message = std::format("{}: Unsucessful execution in {:10f} seconds, IPS={:10f}, IP=[{:04x}:{:04x}], Total={:10d}, Interrupt={}\n", binaryFile, time, cpu->IPS(), cpu->CS, cpu->IP, cpu->totalInstructions, cpu->Interrupt);
 				break;
 			default:
-				message = std::format("{}: Unexpected execution in {} seconds, IPS: {}, IP=[{:04x}:{:04x}], Total={}\n", binaryFile, time, cpu->IPS(), cpu->CS, cpu->IP, cpu->totalInstructions);
+				message = std::format("{}:  Unexpected execution in {:10f} seconds, IPS={:10f}, IP=[{:04x}:{:04x}], Total={:10d}\n", binaryFile, time, cpu->IPS(), cpu->CS, cpu->IP, cpu->totalInstructions);
 				break;
 			}
 			std::cout << ANSI::GraphicsReset << message;
@@ -3342,12 +3366,18 @@ int main(int argc, const char** argv)
 		{
 			auto start = Clock::now();
 			randomize(bootSector, s_BootSectorSize);
-			bootSector[s_BootSectorSize - 2] = 0xAA;
-			bootSector[s_BootSectorSize - 1] = 0x55;
+			bootSector[s_BootSectorSize - 2] = 0x55;
+			bootSector[s_BootSectorSize - 1] = 0xAA;
 			auto  reason                     = cpu->boot(bootSector, s_BootSectorSize);
 			auto  end                        = Clock::now();
 			float time                       = std::chrono::duration_cast<std::chrono::duration<float>>(end - start).count();
 			bool  outputFile                 = false;
+
+			if (cpu->totalInstructions < s_MinInstructions)
+			{
+				reason         = EReason::Interrupt;
+				cpu->Interrupt = Interrupts::s_BP;
+			}
 
 			std::string filename = "os_" + std::to_string(run) + ".bin";
 			std::string message;
@@ -3356,18 +3386,18 @@ int main(int argc, const char** argv)
 			case EReason::Halt:
 				outputFile = true;
 				filename   = "Amazing/" + filename;
-				message    = std::format("{}: Successful execution in {} seconds, IPS: {}, IP=[{:04x}:{:04x}], Total={}\n", run, time, cpu->IPS(), cpu->CS, cpu->IP, cpu->totalInstructions);
+				message    = std::format("{}:  Successful execution in {:10f} seconds, IPS={:10f}, IP=[{:04x}:{:04x}], Total={:10d}\n", run, time, cpu->IPS(), cpu->CS, cpu->IP, cpu->totalInstructions);
 				break;
 			case EReason::Long:
 				outputFile = true;
 				filename   = "Subpar/" + filename;
-				message    = std::format("{}: Subpar execution in {} seconds, IPS: {}, IP=[{:04x}:{:04x}], Total={}\n", run, time, cpu->IPS(), cpu->CS, cpu->IP, cpu->totalInstructions);
+				message    = std::format("{}:      Subpar execution in {:10f} seconds, IPS={:10f}, IP=[{:04x}:{:04x}], Total={:10d}\n", run, time, cpu->IPS(), cpu->CS, cpu->IP, cpu->totalInstructions);
 				break;
 			case EReason::Interrupt:
-				message = std::format("{}: Unsucessful execution in {} seconds, IPS: {}, IP=[{:04x}:{:04x}], Total={}, Interrupt={}\n", run, time, cpu->IPS(), cpu->CS, cpu->IP, cpu->totalInstructions, cpu->Interrupt);
+				message = std::format("{}: Unsucessful execution in {:10f} seconds, IPS={:10f}, IP=[{:04x}:{:04x}], Total={:10d}, Interrupt={}\n", run, time, cpu->IPS(), cpu->CS, cpu->IP, cpu->totalInstructions, cpu->Interrupt);
 				break;
 			default:
-				message = std::format("{}: Unexpected execution in {} seconds, IPS: {}, IP=[{:04x}:{:04x}], Total={}\n", run, time, cpu->IPS(), cpu->CS, cpu->IP, cpu->totalInstructions);
+				message = std::format("{}:  Unexpected execution in {:10f} seconds, IPS={:10f}, IP=[{:04x}:{:04x}], Total={:10d}\n", run, time, cpu->IPS(), cpu->CS, cpu->IP, cpu->totalInstructions);
 				break;
 			}
 			std::cout << ANSI::GraphicsReset << message;
